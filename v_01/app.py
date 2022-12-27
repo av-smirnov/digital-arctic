@@ -27,7 +27,7 @@ poverty_data = pd.read_csv('../data/PovStatsData.csv')
 poverty = pd.read_csv('../data/poverty.csv', low_memory=False)
 series = pd.read_csv('../data/PovStatsSeries.csv')
 
-profiles = pd.read_csv('data\profiles.csv', delimiter = ';', low_memory=False)
+profiles = pd.read_csv('data/profiles.csv', delimiter = ';', low_memory=False)
 areas = profiles['Территория'].drop_duplicates().tolist()
 stats = pd.read_csv('data/stats.csv', delimiter = ';', low_memory=False)
 
