@@ -25,8 +25,8 @@ app = dash.Dash(__name__,
 server = app.server 
 
 
-profiles = pd.read_csv('data\profiles.csv', delimiter = ';', low_memory=False)
-molist = pd.read_csv('data\molist.csv', delimiter = ';', low_memory=False)
+profiles = pd.read_csv('data/profiles.csv', delimiter = ';', low_memory=False)
+molist = pd.read_csv('data/molist.csv', delimiter = ';', low_memory=False)
 areas = molist['Территория'].drop_duplicates().tolist()
 stats = pd.read_csv('data/stats.csv', delimiter = ';', low_memory=False)
 agesex = pd.read_csv('data/age_2021.csv', delimiter = ';', low_memory=False)
