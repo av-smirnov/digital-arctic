@@ -52,7 +52,7 @@ science = pd.read_csv("data/science_tidy.csv", sep=';', low_memory=False)
 higheredu = pd.read_csv("data/higheredu.csv", sep=';', low_memory=False)
 mo_info = pd.read_csv("data/mo_info.csv", sep=';', low_memory=False)
 settlements= pd.read_csv("data/settlements.csv", sep=';')
-urban = pd.read_csv('data/urban_tidy.csv', delimiter = ';', low_memory=False)
+urban_t = pd.read_csv('data/urban_tidy.csv', delimiter = ';', low_memory=False)
 
 areas = molist['Территория'].drop_duplicates().tolist()
 with open('data/rusmo10_10.geojson', encoding='utf-8') as json_file:
@@ -737,7 +737,7 @@ def settlement_map_plot(value):
         colors = {'город': '#e31a1c', 'пгт': '#1f78b4', 'поселок': '#ffff99', 'сельский нп': '#a6cee3',
                   'село': '#33a02c', 'деревня': '#b2df8a', 'станция': '#fdbf6f'}
         settl['color'] = [colors[str(x)] for x in settl['typ']]
-        settl['custom'] = 'Тип: ' + settl['typ'] + '<br>Население: ' + settl['population'].astype(str)
+        settl['custom'] = 'Тип: ' + settl['typ'] + '<br>Население: ' + settl['population'].astype(str) + '<br>(по данным ИНИД)'
         df = mo_colors
         fig = go.Figure()
         fig.add_trace(go.Choropleth(
@@ -766,7 +766,7 @@ def settlement_map_plot(value):
 
 
     elif value == 'Анимация городского расселения':
-        fig = px.scatter_geo(urban, lon='Долгота', lat='Широта', size=urban["Численность населения"] ** (1 / 1.7),
+        fig = px.scatter_geo(urban_t, lon='Долгота', lat='Широта', size=urban_t["Численность населения"] ** (1 / 1.7),
                              animation_frame='Год', color='Тип', hover_name='Название',
                              custom_data=['Численность населения']
                              )
