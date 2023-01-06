@@ -1,6 +1,5 @@
 import re
 from urllib.parse import unquote
-
 import dash
 from dash import html
 from dash import dcc
@@ -16,32 +15,90 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 import json
+import base64
+import dash_cytoscape as cyto
+import networkx as nx
+import dash_daq as daq
 
-globalbgcolor = '#f7fbff'
+globalbgcolor = '#F5FAFA'   # '#f7fbff'
+
 app = dash.Dash(__name__, 
                 meta_tags=[{'name': 'viewport',
                             'content': 'width=device-width, initial-scale=1.0, maximum-scale=4, minimum-scale=0.5,'}],
+
+              #  external_stylesheets=["assets/custom.css"])
                 external_stylesheets=[dbc.themes.BOOTSTRAP])  # BOOTSTRAP COSMO PULSE ZEPHYR MATERIA LITERA
 server = app.server 
 
+image_filename = 'data/RSF_logo.png'
+encoded_image = base64.b64encode(open(image_filename, 'rb').read())
 
+tidy = pd.read_csv('data/tidy.csv', delimiter = ';', low_memory=False)
+indicators_info = pd.read_csv('data/indicators.csv', delimiter = ';')
 profiles = pd.read_csv('data/profiles.csv', delimiter = ';', low_memory=False)
 molist = pd.read_csv('data/molist.csv', delimiter = ';', low_memory=False)
-areas = molist['Территория'].drop_duplicates().tolist()
 stats = pd.read_csv('data/stats.csv', delimiter = ';', low_memory=False)
 agesex = pd.read_csv('data/age_2021.csv', delimiter = ';', low_memory=False)
+covid = pd.read_csv("data/covid_tidy_ma.csv", sep=';', low_memory=False)
+covid_indicators_info = pd.read_csv('data/covid_indicators.csv', delimiter = ';')
 transport = pd.read_csv("data/transport.csv", sep=',')
 transport_cit = pd.read_csv("data/transport_cities.csv", sep=',')
 urban = pd.read_csv('data/urban.csv', delimiter = ';')
 education = pd.read_csv('data/education.csv', delimiter = ';')
-tidy = pd.read_csv('data/tidy.csv', delimiter = ';')
-indicators_info = pd.read_csv('data/indicators.csv', delimiter = ';')
 coords = pd.read_csv('data/coords.csv', delimiter = ';')
-dff = pd.read_csv("data/mumcolor2.csv", sep=';')
+mo_colors = pd.read_csv("data/mo_mcolor.csv", sep=';')
+oktmo = pd.read_csv('data/arctic_oktmo.csv', sep=';')
+science = pd.read_csv("data/science_tidy.csv", sep=';', low_memory=False)
+higheredu = pd.read_csv("data/higheredu.csv", sep=';', low_memory=False)
+mo_info = pd.read_csv("data/mo_info.csv", sep=';', low_memory=False)
+settlements= pd.read_csv("data/settlements.csv", sep=';')
+urban = pd.read_csv('urban_tidy.csv', delimiter = ';', low_memory=False)
+
+areas = molist['Территория'].drop_duplicates().tolist()
 with open('data/rusmo10_10.geojson', encoding='utf-8') as json_file:
     rusmo = json.load(json_file)
-cividis0 = px.colors.sequential.Cividis[0]
 
+
+arcticmigrtable = pd.read_csv('data/arcticmigration.csv')
+arcticmigrtable = arcticmigrtable[arcticmigrtable['migranty'] > 49]
+migrnames = oktmo.migrname.tolist()
+G = nx.DiGraph()
+for i, row in arcticmigrtable.iterrows():
+    G.add_edge(row[4], row[5], weight=row[3])
+degree_values = [v for k, v in G.degree(weight='weight')]
+in_degree_values = [v for k, v in G.in_degree(weight='weight')]
+out_degree_values = [v for k, v in G.out_degree(weight='weight')]
+cy = nx.cytoscape_data(G)
+counter1 = 0
+for n in cy["elements"]["nodes"]:
+    for k, v in n.items():
+        v["label"] = v.pop("value")
+        v["size"] = degree_values[counter1]
+        v["in_size"] = in_degree_values[counter1]
+        v["out_size"] = out_degree_values[counter1]
+        v["sq_size"] = degree_values[counter1] ** (1/2)
+        counter1 = counter1 + 1
+        if v["label"] in migrnames:
+            v["color"] = "#1f78b4"
+        else:
+            v["color"] = "#e31a1c"
+elements = cy["elements"]["nodes"] + cy["elements"]["edges"]
+cyto_stylesheet=[
+    {"selector": "node", "style": {
+                                               "width": "mapData(sq_size, 0, 165, 3, 12)",
+                                               "height": "mapData(sq_size, 0, 165, 3, 12)",
+                                               "background-color": 'data(color)',
+                                               "border-color": "#000000",
+                                               'content': 'data(label)',
+                                               'font-size': "mapData(sq_size, 0, 165, 4, 9)",
+                                               "border-width": "0.2",
+    }},
+    {"selector": 'edge', "style": {"width": "mapData(weight, 0, 2000, 0.1, 1.0)",
+                                               'source-arrow-color': '#b0b0b0', 'curve-style': 'bezier',
+                                               'source-arrow-shape': 'triangle', 'arrow-scale': 0.1,
+                                               'line-color': '#b0b0b0',
+    }}
+]
 
 
 def make_empty_fig():
@@ -54,8 +111,8 @@ def make_empty_fig():
 def multiline_indicator(indicator):
     final = []
     split = indicator.split()
-    for i in range(0, len(split), 3):
-        final.append(' '.join(split[i:i+3]))
+    for i in range(0, len(split), 1):
+        final.append(' '.join(split[i:i+1]))
     return '<br>'.join(final)
 
 
@@ -74,37 +131,54 @@ main_layout = html.Div([
         dbc.Col([
             dbc.Tabs([            
                 dbc.Tab([
-                    html.Ul([
-                        html.Br(),
-                        html.Li([
-                            'Дашборд разработан в рамках гранта ', html.B('Российского научного фонда'), ' № 21-78-00081. Сайт проекта: ',
-                            html.A('https://arcdem.ru',
-                                    href='https://arcdem.ru')
+                    dbc.Row([
+                        dbc.Col([
+                            html.Ul([
+                                html.Br(),
+                                html.Li([
+                                    'Дашборд разработан в рамках гранта ', html.B('Российского научного фонда'), ' № 21-78-00081. Сайт проекта: ',
+                                    html.A('https://arcdem.ru',
+                                            href='https://arcdem.ru')
+                                        ]),
+                                html.Li([
+                                    'Руководитель проекта и автор сайта – к.э.н., с.н.с. лаборатории демографии и социального управления '
+                                    'ИСЭ и ЭПС ФИЦ Коми НЦ УрО РАН ', html.B('Андрей Владимирович Смирнов'), ' (',
+                                    html.A('av.smirnov.ru@gmail.com',
+                                           href='mailto:av.smirnov.ru@gmail.com'), ')'
                                 ]),
-                        html.Li([
-                            'Руководитель проекта и автор сайта – к.э.н., с.н.с. лаборатории демографии и социального управления '
-                            'ИСЭ и ЭПС ФИЦ Коми НЦ УрО РАН ', html.B('Андрей Владимирович Смирнов'), ' (',
-                            html.A('av.smirnov.ru@gmail.com',
-                                   href='mailto:av.smirnov.ru@gmail.com'), ')'
-                        ]),
-                        html.Li([
-                            'Репозиторий на GitHub: ',
-                            html.A('https://github.com/av-smirnov/digital-arctic',
-                                   href='https://github.com/av-smirnov/digital-arctic')
-                        ]),
-                        html.Li('Последнее обновление: 30.12.2022')
+                                html.Li([
+                                    'Репозиторий на GitHub: ',
+                                    html.A('https://github.com/av-smirnov/digital-arctic',
+                                           href='https://github.com/av-smirnov/digital-arctic')
+                                ]),
+                                html.Li('Последнее обновление: 07.01.2023')
+                            ]),
+                        ], xl=9, lg=8, md=7),
+                        dbc.Col([
+                            html.Br(), html.Br(),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()), width=250),
+                            html.Br(), html.Br(),
+                        ], style={"textAlign": "center"}, xl=3, lg=4, md=5)
                     ])
                 ], label='О проекте'),
-                    dbc.Tab([
-                        html.Ul([
-                            html.Br(),
-                            html.Li([
-                            'Научные статьи о населении Арктики: ',
-                            html.A('http://vvfauzer.ru/index/arctic/0-18',
-                                   href='http://vvfauzer.ru/index/arctic/0-18')
-                        ])
-                        ])
-                    ], label='Полезные ссылки')
+                dbc.Tab([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Ul([
+                                html.Br(),
+                                html.Li(['Научные статьи о населении Арктики: ',
+                                    html.A('http://vvfauzer.ru/index/arctic/0-18',
+                                       href='http://vvfauzer.ru/index/arctic/0-18')
+                                ])
+                            ])
+                        ], xl=9, lg=8, md=7),
+                        dbc.Col([
+                            html.Br(), html.Br(),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()), width=250),
+                            html.Br(), html.Br(),
+                        ], style={"textAlign": "center"}, xl=3, lg=4, md=5)
+                    ])
+                ], label='Полезные ссылки')
                 ]),
             ])
     ])
@@ -118,6 +192,7 @@ area_dashboard = html.Div([
         dbc.Col([
     html.Br(),
         html.H1(id='country_heading'),
+        dcc.Markdown(id='area_info', style={'backgroundColor': globalbgcolor} ),
         dbc.Row([
             dbc.Col(dcc.Graph(id='country_page_graph'))
         ]),
@@ -126,7 +201,7 @@ area_dashboard = html.Div([
                 dbc.Label('Выберите показатель:'),
                 dcc.Dropdown(id='country_page_indicator_dropdown',
                              placeholder='Выберите показатель',
-                             value='Среднегодовая численность населения, человек',
+                             value='Численность населения (по переписям), человек',
                              options=[{'label': indicator, 'value': indicator}
                                      for indicator in tidy.columns[9:65]]),
             ], lg=6, md=11),
@@ -167,7 +242,7 @@ indicators_dashboard = html.Div([
                     html.Br(),
                     dbc.Label('Выберите показатель:'),
                     dcc.Dropdown(id='indicator_dropdown',
-                                 value='Естественный прирост (убыль), человек',
+                                 value='Специальный коэффициент рождаемости',
                                  options=[{'label': indicator,
                                  'value': indicator} 
                                  for indicator in tidy.columns[9:65]]),
@@ -177,16 +252,17 @@ indicators_dashboard = html.Div([
                             dbc.Label('Выберите год:'),
                             dcc.Slider(id='indicator_map_slider',
                                        min=2010,
-                                       max=2021,
+                                       max=2022,
                                        step=1,
-                                       included=False,
+                                       included=False, dots = True,
                                        value=2021,
+                                #       tooltip={"placement": "top", "always_visible": True},
                                        marks={year: {'label': str(year),
-                                                     'style': {'color': cividis0, 'fontSize': 14}}
-                                              for year in [x for x in range(2010, 2022)]}),
+                                                     'style': {'color': 'black', 'fontSize': 14}}
+                                              for year in range(2010, 2023, 2)}),
                         ], lg=7),
                         dbc.Col([
-                            dbc.Label('Выберите цветовую шкалу:'),
+                            dbc.Label('Цветовая шкала:'),
                             dcc.Dropdown(id='indicator_map_color_dropdown',
                                          value='Спектральная',
                                          options=[{'label': indicator,
@@ -195,13 +271,7 @@ indicators_dashboard = html.Div([
                                                            'От красного к зеленому','Viridis','Cividis']]),
                         ], lg=3),
                         dbc.Col([
-                            html.Br(), html.Br(),
-                            dcc.Checklist(id='indicator_map_check',
-                                              options=[
-                                                  {'label': 'Обратная шкала', 'value': 'invert'},
-                                              ],
-                                              value=[]
-                                          ),
+                            daq.BooleanSwitch(id='indicator_map_inverter', on=False, label="Обратная шкала")
                         ], lg=2),
                     ]),
                     dcc.Graph(id='indicator_map_chart'),
@@ -211,6 +281,7 @@ indicators_dashboard = html.Div([
                     dcc.Graph(id='indicator_year_barchart',
                              figure=make_empty_fig())
                 ], label='Изучение показателей'),
+
                 dbc.Tab([
                     html.Br(),
                     dbc.Row([
@@ -222,13 +293,7 @@ indicators_dashboard = html.Div([
                                                     for indicator in tidy.columns[9:65]]),
                         ], lg=8),
                         dbc.Col([
-                            html.Br(), html.Br(),
-                            dcc.Checklist(id='mma_check1',
-                                options=[
-                                    {'label': 'Логарифмическая шкала', 'value': 'log'},
-                                ],
-                                value=[]
-                            )
+                            daq.BooleanSwitch(id='mma_check1', on=False, label="Логарифмическая шкала")
                         ], lg=4),
                     ]),
                     html.Br(),
@@ -236,18 +301,12 @@ indicators_dashboard = html.Div([
                         dbc.Col([
                             dbc.Label('Показатель по оси Y:'),
                             dcc.Dropdown(id='mma_indicator2_dropdown', optionHeight=40,
-                                         value='Коэффициент миграционного прироста (общий)',
+                                         value='Общая демографическая нагрузка',
                                          options=[{'label': indicator, 'value': indicator}
                                                   for indicator in tidy.columns[9:65]]),
                         ], lg=8),
                         dbc.Col([
-                            html.Br(), html.Br(),
-                            dcc.Checklist(id='mma_check2',
-                                options=[
-                                    {'label': 'Логарифмическая шкала', 'value': 'log'},
-                                ],
-                                value=[]
-                            )
+                            daq.BooleanSwitch(id='mma_check2', on=False, label="Логарифмическая шкала")
                         ], lg=4),
                     ]),
                     html.Br(),
@@ -257,7 +316,9 @@ indicators_dashboard = html.Div([
                             dcc.Dropdown(id='mma_indicator3_dropdown',optionHeight=40,
                                             value='Среднегодовая численность населения, человек',
                                             options=[{'label': indicator, 'value': indicator}
-                                                    for indicator in ['Среднегодовая численность населения, человек']]),
+                                                    for indicator in ['Среднегодовая численность населения, человек',
+                                                                      'Площадь территории, кв. км',
+                                                                      'Отгружено товаров собственного производства, выполнено работ и услуг, млн рублей']]),
                         ], lg=6),
                         dbc.Col([
                             dbc.Label('Цвет метки:'),
@@ -278,13 +339,14 @@ indicators_dashboard = html.Div([
                                            included=False,
                                            value=2021,
                                            marks={year: {'label': str(year),
-                                                         'style': {'color': cividis0, 'fontSize': 14}}
+                                                         'style': {'color': 'black', 'fontSize': 14}}
                                                   for year in [x for x in range(2010, 2022)]}),
                                 ], lg=12),
                     ]),
                     html.Br(),
                     dcc.Graph(id='mma_graph',figure=make_empty_fig()),
                 ], label='Многомерный анализ'),
+
                 dbc.Tab([
                     html.Br(),
                     dbc.Row([
@@ -325,11 +387,53 @@ indicators_dashboard = html.Div([
                         dcc.Graph(id='clustered_map_chart')
                     ])
                 ], label='Кластеризация'),
-                dbc.Tab([
-                    html.Br()
-                ], label='Расселение'),
+
                 dbc.Tab([
                     html.Br(),
+                    dbc.Label('Выберите карту'),
+                    dcc.Dropdown(id='settlement_dropdown', optionHeight=40,
+                                 value='Карта расселения',
+                                 options=[{'label': indicator, 'value': indicator}
+                                          for indicator in ['Карта расселения', 'Крупнейшая национальность',
+                                                            'Вторая национальность', 'Анимация городского расселения']]),
+                dcc.Graph(id='settlement_map')
+                ], label='Расселение'),
+
+                dbc.Tab([
+                    html.Br(),
+                    html.H4('Миграционные потоки в Арктике по данным проекта "Виртуальное население России"'),
+                    html.Br(),
+                    cyto.Cytoscape(
+                        id="cytoscape_migration",
+                        zoom=1.7,
+                        elements=elements,
+                        style={"width": "100%", "height": "800px"},
+                        layout={"name": "cose", "fit": False},  # "preset" to use the pos coords
+                        stylesheet=cyto_stylesheet,
+                    ),
+                    html.Br(),
+                    html.P(id='cytoscape-mouseoverNodeData-output'),
+                    html.P(id='cytoscape-mouseoverEdgeData-output'),
+
+                    html.Li(['Составлено по данным профилей социальной сети "ВКонтакте". ',
+                            'Учитывается только последняя смена места жительства ',
+                            'Синим цветом отмечены арктические города, красным - остальные. ',
+                            'На сайте представлена упрощенная модель, содержащая только потоки от 50 человек. ',
+                            'Наведите на узел или поток для получения подробной информации.']),
+                    html.Li(['Полный набор данных доступен на сайте проекта "' ,
+                        html.A((html.B('Виртуальное население России')),
+                                href='https://story.tutu.ru/dataset-tutu-ru-i-dannye-modeli-open-data-science/'), '".'
+                            ]),
+                    html.Li([
+                        'Пример изучения перемещений населения методами сетевого анализа представлен в статье "',
+                        html.B(html.A('Цифровые следы населения как источник данных о миграционных потоках в российской Арктике',
+                                href='https://www.avsci.ru/p/1_25.pdf')), '".'
+                    ])
+                ], label='Миграция'),
+
+                dbc.Tab([
+                    html.Br(),
+                    dbc.Label('Выберите виды транспорта:'),
                     dcc.Dropdown(id='migration_dropdown',
                                  value='Самолеты и поезда',
                                  options=[{'label': param,
@@ -347,14 +451,66 @@ indicators_dashboard = html.Div([
                         html.B(html.A('Цифровые следы населения как источник данных о миграционных потоках в российской Арктике',
                                 href='https://www.avsci.ru/p/1_25.pdf')), '"'
                     ])
-                ], label='Перемещения'),
+                ], label='Транспорт'),
 
                 dbc.Tab([
-                    html.Br()
+                    html.Br(),
+                    html.H4('Комплексный балл публикационной результативности по организациям'),
+                    dbc.Label('Выберите направление науки:'),
+                    dcc.Dropdown(id='science_dropdown',
+                                 value='Все направления',
+                                 options=[{'label': param,
+                                 'value': param}
+                                 for param in ['Все направления','Математика','Компьютерные и информационные науки',
+                                               'Физические науки','Химические науки','Науки о Земле', 'Биологические науки',
+                                               'Технические науки', 'Медицинские науки', 'Сельскохозяйственные науки',
+                                               'Общественные науки', 'Гуманитарные науки']]),
+                    dcc.Loading([
+                        dcc.Graph(id='science_barchart')
+                    ]),
+                    html.Br(),
+                    html.H4('Приведенный контингент студентов вузов по организациям'),
+                    dbc.Label('Выберите отрасль наук:'),
+                    dcc.Dropdown(id='higheredu_dropdown',
+                                 value='Все отрасли наук',
+                                 options=[{'label': indicator, 'value': indicator}
+                                          for indicator in higheredu.columns[2:11]]),
+                    dcc.Loading([
+                        dcc.Graph(id='higheredu_barchart')
+
+                    ]),
+                    html.Br(),
+                    html.Li(['Приведенный контингент студентов рассчитывается по формуле: а + (b * 0,25) + ((c+d) х 0,1), ',
+                             'где: а - численность студентов очной формы обучения; b - численность студентов очно-заочной ',
+                             '(вечерней) формы обучения; с - численность студентов заочной формы обучения, ',
+                             'd - численность студентов экстерната). Оценки взяты из иформационно-аналитических материалов ',
+                             'по результатам проведения мониторинга деятельности образовательных организаций высшего образования.',
+                    ]),
+                    html.Li(['Комплексный балл публикационной результативности (КБПР) характеризует публикационную ',
+                             'результативность научного сотрудника и рассчитывается с учетом квартильности и категории ',
+                             'научных публикаций методом фракционного счета (разделением вклада авторов в научный ',
+                             'результат в случае, если публикация подготовлена несколькими авторами и из разных организаций). ',
+                             'Источник данных: Научная электронная библиотека eLIBRARY.RU.',
+                    ]),
                 ], label='Наука и образование'),
 
                 dbc.Tab([
-                    html.Br()
+                    html.Br(),
+                    dbc.Label('Выберите показатель:'),
+                    dcc.Dropdown(id='covid_indicator_dropdown',
+                             placeholder='Выберите показатель',
+                             value='Заражений за день, на 1 млн человек',
+                             options=[{'label': indicator, 'value': indicator}
+                                     for indicator in covid_indicators_info['Показатель'].drop_duplicates().tolist()]),
+                    html.Br(),
+                    dcc.Graph(id='covid_graph'),
+                    dcc.Markdown(id='covid_details', style={'backgroundColor': globalbgcolor} ),
+                    html.Br(),
+                    html.Li([
+                        'Пример изучения пандемии с помощью временных рядов показателей представлен в статье "',
+                        html.B(html.A('Влияние пандемии на демографические процессы в Российской Арктике',
+                                href='https://www.avsci.ru/p/1_21.pdf')), '"'
+                    ])
                 ], label='Пандемия'),
             ]),
         ], lg=8)
@@ -371,6 +527,19 @@ app.validation_layout = html.Div([
 
 app.layout = main_layout
 
+@app.callback(Output('cytoscape-mouseoverNodeData-output', 'children'),
+              Input('cytoscape_migration', 'mouseoverNodeData'))
+def displayTapNodeData(data):
+    if data:
+        return "Выбран узел: " + data['label'] + ". Прибывших: " + str(data['in_size']) + ". Выбывших: " + str(data['out_size']) + "."
+
+@app.callback(Output('cytoscape-mouseoverEdgeData-output', 'children'),
+              Input('cytoscape_migration', 'mouseoverEdgeData'))
+def displayTapNodeData(data):
+    if data:
+        return "Выбран поток: " + data['source'] + " - " + data['target'] + ". Число перемещений: " + str(data['weight']) + "."
+
+
 @app.callback(Output('main_content', 'children'),
               Input('location', 'pathname'))
 def display_content(pathname):
@@ -385,7 +554,7 @@ def display_content(pathname):
               Input('indicator_dropdown', 'value'),
               Input('indicator_map_slider', 'value'),
               Input('indicator_map_color_dropdown', 'value'),
-              Input('indicator_map_check','value'))
+              Input('indicator_map_inverter','on'))
 def display_generic_map_chart(indicator, year, mapcolor, invert):
     color_dict = {
         "Спектральная": "spectral",
@@ -396,12 +565,11 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
     }
 
     imapcolor = color_dict[mapcolor]
-    if 'invert' in invert:
+    if invert is True:
         imapcolor = imapcolor + '_r'
 
     if indicator is None:
         raise PreventUpdate
-   # df = tidy[tidy['Тип'].isin(['городской округ','муниципальный район','муниципальный округ','городской округ (закрытое адм.-тер. образование)']) & tidy['Год'].eq(2020)]
 
     dat = tidy[tidy['Тип'].isin(['городской округ', 'муниципальный район', 'муниципальный округ',
                                 'городской округ (закрытое адм.-тер. образование)'])  & tidy['Год'].eq(year)]
@@ -415,20 +583,6 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
     #                    color_continuous_scale='spectral',
     #                    animation_frame='Год',
     #                    height=750)
-    #fig.update_geos(projection_type="conic equal area", projection_rotation_roll=0,
-    #                projection_rotation_lat=15,
-    #                projection_rotation_lon=105,
-    #                center_lat=71,
-    #                center_lon=107,
-    #                projection_scale=6)
-    #fig.layout.geo.showframe = False
-    #fig.layout.geo.showcountries = False
-    #fig.layout.geo.landcolor = 'white'
-    #fig.layout.geo.bgcolor = globalbgcolor
-    #fig.layout.paper_bgcolor = globalbgcolor
-    #fig.layout.geo.countrycolor = 'gray'
-    #fig.layout.geo.coastlinecolor = 'gray'
-    #fig.layout.coloraxis.colorbar.title = multiline_indicator(indicator)
 
     fig = go.Figure()
     fig.add_trace(go.Choropleth(
@@ -437,6 +591,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
         z=df[indicator], hoverinfo='text',
         marker=dict(line_width=0.5, line_color='rgb(140,140,140)'),
         colorscale=imapcolor, showscale=True,
+        colorbar_title = multiline_indicator(indicator),
         text= df['Территория'],
         customdata=df[indicator],
         hovertemplate = '%{text}<br>Значение: %{customdata}<extra></extra>',
@@ -453,6 +608,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
             customdata=df[indicator],
             marker=dict(
                 colorscale=imapcolor,
+                opacity = 1,
                 line=dict(width=1,color='rgb(20, 20, 20)'),
             ),
             hovertemplate='%{text}<br>Значение: %{customdata}<extra></extra>',
@@ -465,20 +621,17 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
     fig.update_geos(projection_type="conic equal area", projection_rotation_roll=0,
                     projection_rotation_lat=15,
                     projection_rotation_lon=105,
-                    center_lat=71,
+                    center_lat=70.7,
                     center_lon=107,
-                    projection_scale=6,
-                    showcountries=True, countrywidth = 0.5, coastlinewidth = 0.5,
+                    projection_scale=6.2, showcoastlines = False,
+                    showcountries=False, countrywidth = 0.5, coastlinewidth = 0.5,
                     )
     fig.update_layout(
         height=750,
     )
     fig.layout.geo.bgcolor = globalbgcolor
     fig.layout.paper_bgcolor = globalbgcolor
-    fig.layout.geo.landcolor = 'rgb(245, 245, 245)'
-
-
-
+    fig.layout.geo.landcolor = 'rgb(240, 240, 240)'
 
 
     
@@ -496,6 +649,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
         * **Группа показателей:** {series_df['Группа показателей'].fillna('count').values[0]}
         * **Единица измерения:** {series_df['Единица измерения'].fillna('count').values[0]}
         * **Периодичность:** {series_df['Период'].fillna('N/A').values[0]}
+        * **Форма отчетности:** {series_df['Форма отчетности'].fillna('N/A').values[0]}
         * **Источник:** {series_df['Источник'].values[0]}
         
         ### Ограничения и комментарии:  
@@ -527,8 +681,8 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
               Input('mma_indicator2_dropdown', 'value'),
               Input('mma_indicator3_dropdown', 'value'),
               Input('mma_indicator4_dropdown', 'value'),
-              Input('mma_check1', 'value'),
-              Input('mma_check2', 'value'),
+              Input('mma_check1', 'on'),
+              Input('mma_check2', 'on'),
               Input('mma_slider', 'value'))
 def plot_mma_graph(ind1, ind2, ind3, ind4, ch1, ch2, year):
 
@@ -537,12 +691,12 @@ def plot_mma_graph(ind1, ind2, ind3, ind4, ch1, ch2, year):
 
     logx = False
     logy = False
-    if 'log' in ch1:
+    if ch1 == True:
         logx = True
-    if 'log' in ch2:
+    if ch2 == True:
         logy = True
 
-    df['Размер метки'] = df[ind3].pow(1/1.5)
+    df.loc[:, 'Размер метки'] = df[ind3].apply(lambda x: x ** (1/1.5))
     try:
         fig = px.scatter(df,
                          x=ind1,
@@ -575,6 +729,73 @@ def plot_mma_graph(ind1, ind2, ind3, ind4, ch1, ch2, year):
     return fig
 
 
+@app.callback(Output('settlement_map', 'figure'),
+              Input('settlement_dropdown', 'value'))
+def settlement_map_plot(value):
+    if value == 'Карта расселения':
+        settl = settlements
+        colors = {'город': '#e31a1c', 'пгт': '#1f78b4', 'поселок': '#ffff99', 'сельский нп': '#a6cee3',
+                  'село': '#33a02c', 'деревня': '#b2df8a', 'станция': '#fdbf6f'}
+        settl['color'] = [colors[str(x)] for x in settl['typ']]
+        settl['custom'] = 'Тип: ' + settl['typ'] + '<br>Население: ' + settl['population'].astype(str)
+        df = mo_colors
+        fig = go.Figure()
+        fig.add_trace(go.Choropleth(
+            geojson=rusmo, featureidkey="properties.id",
+            locations=df['ОКТМО'],
+            z=df['plot'], hoverinfo='text',
+            colorscale=[[0, 'rgb(0.8, 0.9, 0.8)'], [1, 'rgb(0.8, 0.9, 0.8)']]
+
+        ))
+        fig.update_traces(showscale=False)
+        fig.update_traces(marker_line_width=0.35)
+        fig.add_trace(go.Scattergeo(
+            lon=settl['lon'],
+            lat=settl['lat'],
+            mode='markers',
+            marker_size=settl['population'] ** (1 / 5) + 2,
+            marker_color=settl['color'],
+            text=settl['settlement'],
+            customdata=settl['custom'],
+            marker=dict(
+                opacity=1,
+                line=dict(width=0.2, color='rgb(20, 20, 20)'),
+            ),
+            hovertemplate='%{text}<br>%{customdata}<extra></extra>',
+        ))
+
+
+    elif value == 'Анимация городского расселения':
+        fig = px.scatter_geo(urban, lon='Долгота', lat='Широта', size=urban["Численность населения"] ** (1 / 1.7),
+                             animation_frame='Год', color='Тип', hover_name='Название',
+                             custom_data=['Численность населения']
+                             )
+
+    else:
+        mo_info2 = mo_info[mo_info['Тип'].isin(['городской округ', 'муниципальный район', 'муниципальный округ',
+                                                'городской округ (закрытое административно-территориальное образование)'])]
+        fig = px.choropleth(mo_info2,
+                            geojson=rusmo,
+                            featureidkey="properties.id",
+                            locations=mo_info2['ОКТМО'],
+                            color=mo_info2[value],
+                            )
+
+    fig.update_geos(projection_type="conic equal area", projection_rotation_roll=0,
+                    projection_rotation_lat=15,
+                    projection_rotation_lon=105,
+                    center_lat=70.7,
+                    center_lon=107,
+                    projection_scale=6.2, showcoastlines=False,
+                    showcountries=False, countrywidth=0.5, coastlinewidth=0.5,
+                    )
+    fig.update_layout(height=750)
+    fig.layout.geo.bgcolor = globalbgcolor
+    fig.layout.paper_bgcolor = globalbgcolor
+    fig.layout.geo.landcolor = 'rgb(240, 240, 240)'
+
+    return fig
+
 
 @app.callback(Output('migration_flows', 'figure'),
               Input('migration_dropdown', 'value'))
@@ -587,7 +808,6 @@ def migration_flows_map(vvalue):
         transp = transport[transport.transport.isin(['avia','train'])]
     uniqtransp = np.unique(transp[['departure', 'arrival']].values)
     transport_cities = transport_cit[transport_cit['name'].isin(uniqtransp)]
-    transport_cities['arr_dep'] = 0
     dd = dict(zip(transport_cities.name, transport_cities.id))
     flows = pd.merge(transp, transport_cities, left_on='departure', right_on='name', how='left')
     flows = pd.merge(flows, transport_cities, left_on='arrival', right_on='name', how='left')
@@ -596,8 +816,8 @@ def migration_flows_map(vvalue):
     fig = go.Figure()
     fig.add_trace(go.Choropleth(
         geojson=rusmo, featureidkey="properties.id",
-        locations=dff['ОКТМО'],
-        z=dff['plotn'], hoverinfo='none',
+        locations=mo_colors['ОКТМО'],
+        z=mo_colors['plotn'], hoverinfo='none',
         marker=dict(line_width=0.5, line_color='rgb(140,140,140)'),
         colorscale=[[0, 'rgb(0.8, 0.9, 0.8)'], [1, 'rgb(0.8, 0.9, 0.8)']], showscale=False
     ))
@@ -615,9 +835,7 @@ def migration_flows_map(vvalue):
         lon=transport_cities['lng'],
         lat=transport_cities['lat'],
         text=transport_cities['name'],
-        customdata=transport_cities['arr_dep'],
         hoverinfo='text',
-        # hovertemplate = ' %{customdata} жителей',
         mode='markers',
         marker=dict(
             size=3,
@@ -630,10 +848,10 @@ def migration_flows_map(vvalue):
 
     fig.update_geos(projection_type="conic equal area",
                     projection_rotation_roll=0,
-                    projection_rotation_lat=15,
-                    projection_rotation_lon=120,
-                    center_lat=64.1, # projection_parallels = [0, 100],
-                    center_lon=94,
+                    projection_rotation_lat=10,
+                    projection_rotation_lon=105,
+                    center_lat=62, # projection_parallels = [0, 100],
+                    center_lon=100,
                     projection_scale=4.2,
                     resolution = 110,
                     showcountries=True)
@@ -646,6 +864,79 @@ def migration_flows_map(vvalue):
     fig.layout.paper_bgcolor = globalbgcolor
     fig.layout.geo.landcolor = 'rgb(245, 245, 245)'
     return fig
+
+@app.callback(Output('science_barchart', 'figure'),
+              Input('science_dropdown', 'value'))
+def science_barchart_plot(indicator):
+    fig = px.bar(science, x="Год", y=indicator, color="Организация", height=600)
+    fig.update_layout(
+        legend=dict(orientation="h", y=-0.2),
+        xaxis=dict(tickmode='linear'),
+        yaxis=dict(title='КБПР (' + indicator + ')')
+    )
+    fig.layout.paper_bgcolor = globalbgcolor
+    fig.layout.plot_bgcolor = globalbgcolor
+    return fig
+
+@app.callback(Output('higheredu_barchart', 'figure'),
+              Input('higheredu_dropdown', 'value'))
+def higheredu_barchart_plot(indicator):
+    fig = px.bar(higheredu, x="Год", y=indicator, color="Организация", height=600)
+    fig.update_layout(
+        legend=dict(orientation="h", y=-0.2),
+        xaxis=dict(tickmode='linear'),
+        yaxis = dict(title='Студентов (' + indicator + ')')
+    )
+    fig.update_yaxes(tickformat="none")
+    fig.layout.paper_bgcolor = globalbgcolor
+    fig.layout.plot_bgcolor = globalbgcolor
+    return fig
+
+
+@app.callback(Output('covid_graph', 'figure'),
+              Output('covid_details', 'children'),
+              Input('covid_indicator_dropdown', 'value'))
+def covil_graph_plot(indicator):
+    if indicator == 'Индекс самоизоляции':
+        df = covid[covid['Регион'].isin(['Города России', 'Арктические города', 'Мурманск', 'Апатиты', 'Североморск',
+                                         'Архангельск', 'Северодвинск', 'Воркута', 'Новый Уренгой', 'Ноябрьск',
+                                         'Норильск'])]
+    else:
+        df = covid[covid['Регион'].isin(['Россия', 'Арктические регионы', 'Архангельская обл.', 'Мурманская обл.',
+                                         'Ненецкий АО', 'Чукотский АО', 'Ямало-Ненецкий АО'])]
+    try:
+        fig = px.line(df, x='Дата', y=indicator, color='Регион')
+    except Exception:
+        fig = px.line(df, x='Дата', y=indicator, color='Регион')
+
+    fig.update_layout(height=750)
+    fig.update_xaxes(tickformat='%d.%m<br>%Y')
+    fig.layout.paper_bgcolor = globalbgcolor
+
+    series_df = covid_indicators_info[covid_indicators_info['Показатель'].eq(indicator)]
+    if series_df.empty:
+        markdown = "Нет данных по данному показателю"
+    else:
+        limitations = series_df['Ограничения и комментарий'].fillna('...').str.replace('\n\n', ' ').values[0]
+
+        markdown = f"""
+            ## {series_df['Показатель'].values[0]}  
+
+            {series_df['Описание'].values[0]}  
+
+            * **Группа показателей:** {series_df['Группа показателей'].fillna('count').values[0]}
+            * **Единица измерения:** {series_df['Единица измерения'].fillna('count').values[0]}
+            * **Периодичность:** {series_df['Период'].fillna('N/A').values[0]}
+            * **Источник:** {series_df['Источник'].values[0]}
+
+            ### Ограничения и комментарии:  
+
+            {limitations}  
+
+            """
+
+    return fig, markdown
+
 
 @app.callback(Output('clustered_map_chart', 'figure'),
               Input('clustering_submit_button', 'n_clicks'),
@@ -669,16 +960,8 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
     kmeans.fit(scaled_data)
     df['Кластер'] = [str(x) for x in kmeans.labels_]
 
-    colors = {            '0': '#8dd3c7',
-                          '1': '#ffffb3',
-                          '2': '#bebada',
-                          '3': '#fb8072',
-                          '4': '#80b1d3',
-                          '5': '#fdb462',
-                          '6': '#b3de69',
-                          '7': '#fccde5',
-                          '8': '#d9d9d9',
-                          '9': '#bc80bd'}
+    colors = { '0': '#8dd3c7', '1': '#ffffb3', '2': '#bebada', '3': '#fb8072', '4': '#80b1d3',
+               '5': '#fdb462', '6': '#b3de69', '7': '#fccde5', '8': '#d9d9d9', '9': '#bc80bd'}
 
 
     df['Цвет'] = [colors[str(x)] for x in kmeans.labels_]
@@ -690,8 +973,8 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
                         color=[str(x) for x in kmeans.labels_],
                         labels={'color': 'Cluster'},
                         hover_data=indicators,
-                        height=650,
-                        title=f'Кластеры территорий - {year}. Число кластеров: {n_clusters}<br>Качество модели: {kmeans.inertia_:,.2f}',
+                        height=700,
+                        title=f'Кластеры территорий - {year}. Число кластеров: {n_clusters}<br>Качество модели (чем меньше значение, тем лучше): {kmeans.inertia_:,.2f}',
                         #color_discrete_sequence=px.colors.qualitative.T10
                         color_discrete_map = colors
                     )
@@ -699,11 +982,13 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
                        xref='paper', yref='paper',
                        text='Показатели:<br>' + "<br>".join(indicators),
                        showarrow=False)
+    fig.update_traces(marker_line_color='rgb(140,140,140)')
 
     fig.add_scattergeo(
             lon = df['Долгота'],
             lat = df['Широта'],
             marker_color=df["Цвет"],
+            marker_opacity=1,
             marker_size = df['Размер'],
             marker_colorscale = px.colors.qualitative.T10,
             marker_line=dict(width=1,color='rgb(20, 20, 20)'),
@@ -721,14 +1006,16 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
                     center_lat=71,
                     center_lon=107,
                     projection_scale=6,
-                    showcountries=True, countrywidth=0.5, coastlinewidth=0.5,
+                    showcoastlines=False,
+                    showcountries=False,
+                    countrywidth=0.5,
+                    coastlinewidth=0.5,
                     )
-    fig.layout.geo.showcountries = True
-    fig.layout.geo.landcolor = 'white'
+
+
     fig.layout.geo.bgcolor = globalbgcolor
     fig.layout.paper_bgcolor = globalbgcolor
-    fig.layout.geo.countrycolor = 'gray'
-    fig.layout.geo.coastlinecolor = 'gray'
+    fig.layout.geo.landcolor = 'rgb(240, 240, 240)'
     return fig
 
 
@@ -741,6 +1028,7 @@ def set_dropdown_values(pathname):
 
 
 @app.callback(Output('country_heading', 'children'),
+              Output('area_info', 'children'),
               Output('country_page_graph', 'figure'),
               Output('urban_table', 'children'),
               Output('age_pyramid', 'figure'),
@@ -762,15 +1050,27 @@ def plot_country_charts(pathname, areas, indicator):
         raise PreventUpdate
     if unquote(pathname[1:]) in areas:
         area = unquote(pathname[1:])
+
+    areainfo = mo_info[mo_info['Территория'].eq(area)]
+    markdown = f"""
+                 **{areainfo['Территория'].values[0]}** – {areainfo['Тип'].values[0]} {areainfo['Субъект РФ'].fillna('').values[0]}.
+                  {areainfo['Частично'].fillna('').values[0]} ОКТМО: {areainfo['ОКТМО'].values[0]}.
+                  Административный центр: {areainfo['Административный центр'].values[0]}. 
+                  На 2021 г. население составило {areainfo['Население'].values[0]} чел. или {areainfo['Население процент'].values[0]}%
+                  от всего населения Арктической зоны Российской Федерации.
+                """
+
+
     df = tidy[tidy['Территория'].isin(areas) & tidy['Год'].isin(years)]
     fig = px.line(df,
                   x='Год',
                   y=indicator,
                   title='<b>' + indicator + '</b><br>' + ', '.join(areas),
-                  color='Территория')
+                  color='Территория', line_shape='spline',
+                  markers=True)
+    fig.update_layout(height=600)
     fig.layout.paper_bgcolor = globalbgcolor
 
-    # Таблица городов и пгт
     mos = urban2['МО'].drop_duplicates().tolist()
     regions = urban2['Регион'].drop_duplicates().tolist()
     if areas[0] in areas:
@@ -837,7 +1137,6 @@ def plot_country_charts(pathname, areas, indicator):
     fig3.layout.paper_bgcolor = globalbgcolor
     fig3.layout.plot_bgcolor = globalbgcolor
 
-
     table1 = profiles2[profiles2['Территория'] == areas[0]].iloc[:, 8:31]
     table2 = profiles2[profiles2['Территория'] == areas[0]].iloc[:, 31:54]
     table3 = profiles2.iloc[0:1, 8:31]
@@ -850,7 +1149,7 @@ def plot_country_charts(pathname, areas, indicator):
         table = dbc.Table.from_dataframe(table)
     else:
         table = html.Div()
-    return 'Профиль ' + area , fig, table0, fig2, fig3, table
+    return 'Профиль ' + area, markdown, fig, table0, fig2, fig3, table
 
 app.title = "Цифровой двойник населения Арктики. Дашборд"
 if __name__ == '__main__':
