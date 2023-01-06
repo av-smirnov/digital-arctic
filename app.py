@@ -52,7 +52,7 @@ science = pd.read_csv("data/science_tidy.csv", sep=';', low_memory=False)
 higheredu = pd.read_csv("data/higheredu.csv", sep=';', low_memory=False)
 mo_info = pd.read_csv("data/mo_info.csv", sep=';', low_memory=False)
 settlements= pd.read_csv("data/settlements.csv", sep=';')
-urban = pd.read_csv('urban_tidy.csv', delimiter = ';', low_memory=False)
+urban = pd.read_csv('data/urban_tidy.csv', delimiter = ';', low_memory=False)
 
 areas = molist['Территория'].drop_duplicates().tolist()
 with open('data/rusmo10_10.geojson', encoding='utf-8') as json_file:
