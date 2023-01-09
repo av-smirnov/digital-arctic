@@ -19,8 +19,10 @@ import base64
 import dash_cytoscape as cyto
 import networkx as nx
 import dash_daq as daq
+import _datetime
 
 globalbgcolor = '#F5FAFA'   # '#f7fbff'
+np.warnings.filterwarnings('ignore')
 
 app = dash.Dash(__name__, 
                 meta_tags=[{'name': 'viewport',
@@ -94,8 +96,8 @@ cyto_stylesheet=[
                                                "border-width": "0.2",
     }},
     {"selector": 'edge', "style": {"width": "mapData(weight, 0, 2000, 0.1, 1.0)",
-                                               'source-arrow-color': '#b0b0b0', 'curve-style': 'bezier',
-                                               'source-arrow-shape': 'triangle', 'arrow-scale': 0.1,
+                                               'target-arrow-color': '#b0b0b0', 'curve-style': 'bezier',
+                                               'target-arrow-shape': 'triangle', 'arrow-scale': 0.1,
                                                'line-color': '#b0b0b0',
     }}
 ]
@@ -151,7 +153,7 @@ main_layout = html.Div([
                                     html.A('https://github.com/av-smirnov/digital-arctic',
                                            href='https://github.com/av-smirnov/digital-arctic')
                                 ]),
-                                html.Li('Последнее обновление: 07.01.2023')
+                                html.Li('Последнее обновление: 10.01.2023')
                             ]),
                         ], xl=9, lg=8, md=7),
                         dbc.Col([
@@ -252,7 +254,7 @@ indicators_dashboard = html.Div([
                             dbc.Label('Выберите год:'),
                             dcc.Slider(id='indicator_map_slider',
                                        min=2010,
-                                       max=2022,
+                                       max=2021,
                                        step=1,
                                        included=False, dots = True,
                                        value=2021,
@@ -268,7 +270,7 @@ indicators_dashboard = html.Div([
                                          options=[{'label': indicator,
                                          'value': indicator}
                                          for indicator in ['Спектральная', 'От красного к синему',
-                                                           'От красного к зеленому','Viridis','Cividis']]),
+                                                           'От красного к зеленому','Для ч/б печати' , 'При нарушении цветовосприятия']]),
                         ], lg=3),
                         dbc.Col([
                             daq.BooleanSwitch(id='indicator_map_inverter', on=False, label="Обратная шкала")
@@ -371,12 +373,13 @@ indicators_dashboard = html.Div([
                     dbc.Row([
                         dbc.Col(lg=1),
                         dbc.Col([
-                            dbc.Label('Выберите индикаторы:'),
+                            dbc.Label('Выберите показатели:'),
                             dcc.Dropdown(id='cluster_indicator_dropdown',optionHeight=40,
                                         multi=True,
-                                        value=['Отгружено товаров собственного производства, выполнено работ и услуг, млн рублей'],
+                                        value=['Среднемесячная заработная плата работников организаций, рублей'],
                                         options=[{'label': indicator, 'value': indicator}
                                                 for indicator in tidy.columns[9:65]]),
+                            html.Br(),
                         ], lg=6),
                         dbc.Col([            
                             dbc.Label(''),html.Br(),
@@ -384,7 +387,9 @@ indicators_dashboard = html.Div([
                         ]),
                     ]),
                     dcc.Loading([
-                        dcc.Graph(id='clustered_map_chart')
+                        dcc.Graph(id='clustered_map_chart'),
+                        html.H4('Средние значения показателей по кластерам'),
+                        html.Div(id='cluster_table'),
                     ])
                 ], label='Кластеризация'),
 
@@ -402,18 +407,21 @@ indicators_dashboard = html.Div([
                 dbc.Tab([
                     html.Br(),
                     html.H4('Миграционные потоки в Арктике по данным проекта "Виртуальное население России"'),
+                    html.B('Наведите курсор на узел сети или поток. '),
                     html.Br(),
                     cyto.Cytoscape(
                         id="cytoscape_migration",
                         zoom=1.7,
                         elements=elements,
-                        style={"width": "100%", "height": "800px"},
+                        style={"width": "100%", "height": "700px"},
                         layout={"name": "cose", "fit": False},  # "preset" to use the pos coords
                         stylesheet=cyto_stylesheet,
                     ),
+
+                    html.B(id='cytoscape-mouseoverNodeData-output'),
                     html.Br(),
-                    html.P(id='cytoscape-mouseoverNodeData-output'),
-                    html.P(id='cytoscape-mouseoverEdgeData-output'),
+                    html.B(id='cytoscape-mouseoverEdgeData-output'),
+                    html.Br(),
 
                     html.Li(['Составлено по данным профилей социальной сети "ВКонтакте". ',
                             'Учитывается только последняя смена места жительства ',
@@ -479,7 +487,6 @@ indicators_dashboard = html.Div([
                         dcc.Graph(id='higheredu_barchart')
 
                     ]),
-                    html.Br(),
                     html.Li(['Приведенный контингент студентов рассчитывается по формуле: а + (b * 0,25) + ((c+d) х 0,1), ',
                              'где: а - численность студентов очной формы обучения; b - численность студентов очно-заочной ',
                              '(вечерней) формы обучения; с - численность студентов заочной формы обучения, ',
@@ -513,7 +520,7 @@ indicators_dashboard = html.Div([
                     ])
                 ], label='Пандемия'),
             ]),
-        ], lg=8)
+        ], lg=8, md=12)
     ]),
     html.Br(),
 ] ,  style={'backgroundColor': globalbgcolor}
@@ -560,8 +567,8 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
         "Спектральная": "spectral",
         "От красного к синему": "RdBu",
         "От красного к зеленому": "RdYlGn",
-        "Viridis": "Viridis",
-        "Cividis": "Cividis",
+        "Для ч/б печати": "Viridis",
+        "При нарушении цветовосприятия": "Cividis",
     }
 
     imapcolor = color_dict[mapcolor]
@@ -575,14 +582,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
                                 'городской округ (закрытое адм.-тер. образование)'])  & tidy['Год'].eq(year)]
 
     df = pd.merge(dat, coords, left_on='Территория',right_on='Территория',how='left')
-    #fig = px.choropleth(df, geojson=rusmo, featureidkey = "properties.id",
-    #                    locations='ОКТМО',
-    #                    color=indicator,
-    #                    title=indicator,
-    #                    hover_name='Территория',
-    #                    color_continuous_scale='spectral',
-    #                    animation_frame='Год',
-    #                    height=750)
+    df.loc[np.isnan(df[indicator]), 'Размер'] = 0
 
     fig = go.Figure()
     fig.add_trace(go.Choropleth(
@@ -591,7 +591,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
         z=df[indicator], hoverinfo='text',
         marker=dict(line_width=0.5, line_color='rgb(140,140,140)'),
         colorscale=imapcolor, showscale=True,
-        colorbar_title = multiline_indicator(indicator),
+        colorbar_title = multiline_indicator(indicator) + ",<br>" + str(year) + " г.",
         text= df['Территория'],
         customdata=df[indicator],
         hovertemplate = '%{text}<br>Значение: %{customdata}<extra></extra>',
@@ -616,8 +616,6 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
     except Exception:
         aaa = 1
 
-
-
     fig.update_geos(projection_type="conic equal area", projection_rotation_roll=0,
                     projection_rotation_lat=15,
                     projection_rotation_lon=105,
@@ -627,7 +625,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
                     showcountries=False, countrywidth = 0.5, coastlinewidth = 0.5,
                     )
     fig.update_layout(
-        height=750,
+        height=700,  margin=dict(l=20, r=20, t=25, b=25),
     )
     fig.layout.geo.bgcolor = globalbgcolor
     fig.layout.paper_bgcolor = globalbgcolor
@@ -639,7 +637,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
     if series_df.empty:
         markdown = "Нет данных по данному показателю"
     else:
-        limitations = series_df['Ограничения и комментарий'].fillna('...').str.replace('\n\n', ' ').values[0]
+        limitations = series_df['Ограничения и комментарий'].fillna('отсутствуют').str.replace('\n\n', ' ').values[0]
 
         markdown = f"""
         ## {series_df['Показатель'].values[0]}  
@@ -652,7 +650,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
         * **Форма отчетности:** {series_df['Форма отчетности'].fillna('N/A').values[0]}
         * **Источник:** {series_df['Источник'].values[0]}
         
-        ### Ограничения и комментарии:  
+        #### Ограничения и комментарии:  
         
         {limitations}  
 
@@ -669,6 +667,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
                  orientation='h',
                  height=200 + (n_countries*20),
                  title=indicator + ', ' + str(year))
+    fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
     fig2.layout.paper_bgcolor = globalbgcolor
 
 
@@ -726,6 +725,7 @@ def plot_mma_graph(ind1, ind2, ind3, ind4, ch1, ch2, year):
                          # trendline_options=dict(log_x=logx, log_y=logx)
                          )
     fig.layout.paper_bgcolor = globalbgcolor
+    fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
     return fig
 
 
@@ -737,7 +737,7 @@ def settlement_map_plot(value):
         colors = {'город': '#e31a1c', 'пгт': '#1f78b4', 'поселок': '#ffff99', 'сельский нп': '#a6cee3',
                   'село': '#33a02c', 'деревня': '#b2df8a', 'станция': '#fdbf6f'}
         settl['color'] = [colors[str(x)] for x in settl['typ']]
-        settl['custom'] = 'Тип: ' + settl['typ'] + '<br>Население: ' + settl['population'].astype(str) + '<br>(по данным ИНИД)'
+        settl['custom'] = 'Тип: ' + settl['typ'] + '<br>Население в 2020 г.: ' + settl['population'].astype(str) + '<br>(по данным ИНИД)'
         df = mo_colors
         fig = go.Figure()
         fig.add_trace(go.Choropleth(
@@ -766,20 +766,51 @@ def settlement_map_plot(value):
 
 
     elif value == 'Анимация городского расселения':
-        fig = px.scatter_geo(urban_t, lon='Долгота', lat='Широта', size=urban_t["Численность населения"] ** (1 / 1.7),
+        fig = px.scatter_geo(urban_t, lon='Долгота', lat='Широта', size=urban_t["Численность населения"] ** (1 / 1.7)+2,
                              animation_frame='Год', color='Тип', hover_name='Название',
-                             custom_data=['Численность населения']
+                             custom_data=['Численность населения'], hover_data=['Численность населения']
                              )
 
     else:
         mo_info2 = mo_info[mo_info['Тип'].isin(['городской округ', 'муниципальный район', 'муниципальный округ',
                                                 'городской округ (закрытое административно-территориальное образование)'])]
+        colors = {'русские': '#8dd3c7', 'ханты': '#ffffb3', 'ненцы': '#bebada', 'чукчи': '#fb8072', 'якуты': '#80b1d3',
+                  'долганы': '#fdb462', 'эвенки': '#b3de69', 'эвены': '#fccde5', 'украинцы': '#b15928', 'коми': '#bc80bd',
+                  'татары': '#1f78b4', 'селькупы': '#33a02c', 'эскимосы': '#e31a1c', 'кеты': '#ff7f00', 'карелы': '#6a3d9a',
+                  'белорусы': '#999999'}
+
+
+
+        mo_info2 = pd.merge(mo_info2, coords, left_on='Территория', right_on='Территория', how='left')
+
+    #    mo_info2['Цвет'] = 0
+    #    for index, row in mo_info2.iterrows():
+    #        row['Цвет'] = colors[row[value]]
+
+        mo_info2['Цвет'] =mo_info2.apply(lambda x: colors[x[value]], axis=1)
+
         fig = px.choropleth(mo_info2,
                             geojson=rusmo,
                             featureidkey="properties.id",
                             locations=mo_info2['ОКТМО'],
                             color=mo_info2[value],
+                            color_discrete_map=colors,
+                            hover_data=['Территория'],
                             )
+
+        fig.add_scattergeo(
+            lon=mo_info2['Долгота'],
+            lat=mo_info2['Широта'],
+            marker_color=mo_info2["Цвет"],
+            marker_opacity=1,
+            marker_size=mo_info2['Размер'],
+            marker_colorscale=px.colors.qualitative.T10,
+            marker_line=dict(width=1, color='rgb(20, 20, 20)'),
+            text=mo_info2['Территория'],
+            customdata=mo_info2[value],
+            hovertemplate='%{text}<br>Национальность: %{customdata}<extra></extra>',
+            name=""
+        )
 
     fig.update_geos(projection_type="conic equal area", projection_rotation_roll=0,
                     projection_rotation_lat=15,
@@ -793,6 +824,7 @@ def settlement_map_plot(value):
     fig.layout.geo.bgcolor = globalbgcolor
     fig.layout.paper_bgcolor = globalbgcolor
     fig.layout.geo.landcolor = 'rgb(240, 240, 240)'
+    fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
 
     return fig
 
@@ -811,6 +843,16 @@ def migration_flows_map(vvalue):
     dd = dict(zip(transport_cities.name, transport_cities.id))
     flows = pd.merge(transp, transport_cities, left_on='departure', right_on='name', how='left')
     flows = pd.merge(flows, transport_cities, left_on='arrival', right_on='name', how='left')
+
+    transport_cities['arr'] = 0
+    transport_cities['dep'] = 0
+    for index, row in transp.iterrows():
+        transport_cities.loc[dd[row['departure']], 'dep'] += row['passengers']
+        transport_cities.loc[dd[row['arrival']], 'arr'] += row['passengers']
+    transport_cities['size'] = (transport_cities['arr'] + transport_cities['dep']) ** (1/6) + 2
+
+
+    transport_cities['custom'] = 'Выбывших: ' + transport_cities['dep'].astype(str) + '<br>Прибывших: ' + transport_cities['arr'].astype(str)
 
     ColorDict = {'avia': 'red', 'train': 'blue', 'bus': 'green'}
     fig = go.Figure()
@@ -835,11 +877,13 @@ def migration_flows_map(vvalue):
         lon=transport_cities['lng'],
         lat=transport_cities['lat'],
         text=transport_cities['name'],
+        customdata=transport_cities['custom'],
+        hovertemplate='%{text}<br>%{customdata}<extra></extra>',
         hoverinfo='text',
         mode='markers',
         marker=dict(
-            size=3,
-            color='rgb(200, 40, 40)',
+            size=transport_cities['size'],
+            color='rgb(200, 0, 100)',
             line=dict(
                 width=3,
                 color='rgba(68, 68, 68, 0)'
@@ -863,6 +907,7 @@ def migration_flows_map(vvalue):
     fig.layout.geo.bgcolor = globalbgcolor
     fig.layout.paper_bgcolor = globalbgcolor
     fig.layout.geo.landcolor = 'rgb(245, 245, 245)'
+    fig.update_layout(margin=dict(l=20, r=20, t=65, b=35))
     return fig
 
 @app.callback(Output('science_barchart', 'figure'),
@@ -874,6 +919,7 @@ def science_barchart_plot(indicator):
         xaxis=dict(tickmode='linear'),
         yaxis=dict(title='КБПР (' + indicator + ')')
     )
+    fig.update_layout(margin=dict(l=20, r=20, t=30, b=25))
     fig.layout.paper_bgcolor = globalbgcolor
     fig.layout.plot_bgcolor = globalbgcolor
     return fig
@@ -887,6 +933,7 @@ def higheredu_barchart_plot(indicator):
         xaxis=dict(tickmode='linear'),
         yaxis = dict(title='Студентов (' + indicator + ')')
     )
+    fig.update_layout(margin=dict(l=20, r=20, t=30, b=35))
     fig.update_yaxes(tickformat="none")
     fig.layout.paper_bgcolor = globalbgcolor
     fig.layout.plot_bgcolor = globalbgcolor
@@ -912,12 +959,13 @@ def covil_graph_plot(indicator):
     fig.update_layout(height=750)
     fig.update_xaxes(tickformat='%d.%m<br>%Y')
     fig.layout.paper_bgcolor = globalbgcolor
+    fig.update_layout(margin=dict(l=20, r=20, t=30, b=25))
 
     series_df = covid_indicators_info[covid_indicators_info['Показатель'].eq(indicator)]
     if series_df.empty:
         markdown = "Нет данных по данному показателю"
     else:
-        limitations = series_df['Ограничения и комментарий'].fillna('...').str.replace('\n\n', ' ').values[0]
+        limitations = series_df['Ограничения и комментарий'].fillna('отсутствуют').str.replace('\n\n', ' ').values[0]
 
         markdown = f"""
             ## {series_df['Показатель'].values[0]}  
@@ -929,7 +977,7 @@ def covil_graph_plot(indicator):
             * **Периодичность:** {series_df['Период'].fillna('N/A').values[0]}
             * **Источник:** {series_df['Источник'].values[0]}
 
-            ### Ограничения и комментарии:  
+            #### Ограничения и комментарии:  
 
             {limitations}  
 
@@ -939,6 +987,7 @@ def covil_graph_plot(indicator):
 
 
 @app.callback(Output('clustered_map_chart', 'figure'),
+              Output('cluster_table', 'children'),
               Input('clustering_submit_button', 'n_clicks'),
               State('year_cluster_slider', 'value'),
               State('ncluster_cluster_slider', 'value'),
@@ -971,10 +1020,10 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
                         featureidkey = "properties.id",
                         locations = df['ОКТМО'],
                         color=[str(x) for x in kmeans.labels_],
-                        labels={'color': 'Cluster'},
+                        labels={'color': 'Кластер'},
                         hover_data=indicators,
                         height=700,
-                        title=f'Кластеры территорий - {year}. Число кластеров: {n_clusters}<br>Качество модели (чем меньше значение, тем лучше): {kmeans.inertia_:,.2f}',
+                        title=f'Кластеры территорий, {year}. Число кластеров: {n_clusters}. Качество модели (inertia): {kmeans.inertia_:,.2f}',
                         #color_discrete_sequence=px.colors.qualitative.T10
                         color_discrete_map = colors
                     )
@@ -983,6 +1032,7 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
                        text='Показатели:<br>' + "<br>".join(indicators),
                        showarrow=False)
     fig.update_traces(marker_line_color='rgb(140,140,140)')
+
 
     fig.add_scattergeo(
             lon = df['Долгота'],
@@ -1012,11 +1062,24 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
                     coastlinewidth=0.5,
                     )
 
-
+    fig.update_layout(margin=dict(l=20, r=20, t=35, b=35))
     fig.layout.geo.bgcolor = globalbgcolor
     fig.layout.paper_bgcolor = globalbgcolor
     fig.layout.geo.landcolor = 'rgb(240, 240, 240)'
-    return fig
+
+    table00 = df.groupby(['Кластер'],as_index=False).mean().iloc[:, 0:len(indicators)+1].round(1)
+    if len(table00.index) > 0:
+        cluster_members = list()
+        for c in range(n_clusters):
+            cluster_members.append(len(df[df['Кластер'] == str(c)][:]))
+        cluster_members
+        table00.insert(1, "Количество территорий", cluster_members)
+        table0 = dbc.Table.from_dataframe(table00)
+    else:
+        table0 = html.Div()
+
+
+    return fig, table0
 
 
 @app.callback(Output('country_page_contry_dropdown', 'value'),
@@ -1051,6 +1114,19 @@ def plot_country_charts(pathname, areas, indicator):
     if unquote(pathname[1:]) in areas:
         area = unquote(pathname[1:])
 
+    now_date = _datetime.datetime.today()
+    perepis_date = _datetime.datetime(2021, 10, 1)
+    otrezok = now_date - perepis_date
+    otrezok.days
+    date_df = tidy[tidy['Территория'].eq(area) & tidy['Год'].isin([2020, 2019, 2018])]
+    date_df0 = date_df['Коэффициент общего прироста населения']
+    pop_mean = date_df0.mean() / 1000
+    init_pop = tidy[tidy['Территория'].eq(area) & tidy['Год'].eq(2021)]['Численность населения (по переписям), человек']
+    init_pop = init_pop.reset_index().iloc[0, 1]
+    now_pop = int(init_pop + (init_pop * pop_mean) * (otrezok.days / 365))
+    now_pop = '{0:,}'.format(now_pop).replace(',', ' ')
+    now_date_format = now_date.date().strftime("%d.%m.%Y")
+
     areainfo = mo_info[mo_info['Территория'].eq(area)]
     markdown = f"""
                  **{areainfo['Территория'].values[0]}** – {areainfo['Тип'].values[0]} {areainfo['Субъект РФ'].fillna('').values[0]}.
@@ -1058,6 +1134,7 @@ def plot_country_charts(pathname, areas, indicator):
                   Административный центр: {areainfo['Административный центр'].values[0]}. 
                   На 2021 г. население составило {areainfo['Население'].values[0]} чел. или {areainfo['Население процент'].values[0]}%
                   от всего населения Арктической зоны Российской Федерации.
+                Оценка численности населения на сегодня ({now_date_format}): {now_pop} чел.
                 """
 
 
@@ -1113,7 +1190,7 @@ def plot_country_charts(pathname, areas, indicator):
         height=800, title_text=age_title + ". Состав населения по полу и возрасту, 2021 г.",
         bargap=0.1, paper_bgcolor=globalbgcolor
     )
-
+    fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
 
     edu = education
     edu_cols = edu.columns
@@ -1125,7 +1202,7 @@ def plot_country_charts(pathname, areas, indicator):
                  x=edu_cols,
                  y='Год',
                  barmode='stack',
-                 height=400,
+                 height=350,
                  hover_name='Территория',
                  title=f'Образовательный состав населения {areas[0]}',
                  orientation='h')
@@ -1136,6 +1213,7 @@ def plot_country_charts(pathname, areas, indicator):
     fig3.layout.xaxis.title = 'Доля от населения старше 15 лет, %'
     fig3.layout.paper_bgcolor = globalbgcolor
     fig3.layout.plot_bgcolor = globalbgcolor
+    fig3.update_layout(margin=dict(l=20, r=20, t=30, b=25))
 
     table1 = profiles2[profiles2['Территория'] == areas[0]].iloc[:, 8:31]
     table2 = profiles2[profiles2['Территория'] == areas[0]].iloc[:, 31:54]
@@ -1145,7 +1223,7 @@ def plot_country_charts(pathname, areas, indicator):
 
 
     if table.shape[1] == 4:
-        table.columns = ['Показатель' , 'Значение в ' + areas[0], 'Ранг', 'В целом по АЗРФ']
+        table.columns = ['Показатель' , 'Значение в ' + areas[0], 'Ранг в АЗРФ', 'В целом по АЗРФ']
         table = dbc.Table.from_dataframe(table)
     else:
         table = html.Div()
