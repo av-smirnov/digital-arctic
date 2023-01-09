@@ -453,9 +453,9 @@ indicators_dashboard = html.Div([
                                  options=[{'label': param,
                                  'value': param}
                                  for param in ['Самолеты и поезда','Самолеты','Поезда']]),
-                    dcc.Loading([
-                        dcc.Graph(id='migration_flows')
-                    ]),
+
+                    dcc.Graph(id='migration_flows'),
+
                     html.Li([
                         html.A(('Полный набор данных на сайте ', html.B('Туту.ру'), ' и его описание'),
                                 href='https://story.tutu.ru/dataset-tutu-ru-i-dannye-modeli-open-data-science/')
@@ -1013,20 +1013,21 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
     data_no_na = imp.fit_transform(data)
     scaled_data = scaler.fit_transform(data_no_na)
     kmeans.fit(scaled_data)
-    df['Кластер'] = [str(x) for x in kmeans.labels_]
+    labels = kmeans.labels_ + 1
+    df['Номер кластера'] = [str(x) for x in labels]
 
-    colors = { '0': '#8dd3c7', '1': '#ffffb3', '2': '#bebada', '3': '#fb8072', '4': '#80b1d3',
-               '5': '#fdb462', '6': '#b3de69', '7': '#fccde5', '8': '#d9d9d9', '9': '#bc80bd'}
+    colors = { '1': '#8dd3c7', '2': '#ffffb3', '3': '#bebada', '4': '#fb8072', '5': '#80b1d3',
+               '6': '#fdb462', '7': '#b3de69', '8': '#fccde5', '9': '#d9d9d9', '10': '#bc80bd'}
 
 
-    df['Цвет'] = [colors[str(x)] for x in kmeans.labels_]
+    df['Цвет'] = [colors[str(x)] for x in labels]
 
     fig = px.choropleth(df,
                         geojson = rusmo,
                         featureidkey = "properties.id",
                         locations = df['ОКТМО'],
-                        color=[str(x) for x in kmeans.labels_],
-                        labels={'color': 'Кластер'},
+                        color=[str(x) for x in labels],
+                        labels={'color': 'Номер кластера'},
                         hover_data=indicators, hover_name='Территория',
                         height=700,
                         title=f'Кластеры территорий, {year}. Число кластеров: {n_clusters}. Качество модели: {kmeans.inertia_:,.2f}',
@@ -1050,7 +1051,7 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
             marker_line=dict(width=1,color='rgb(20, 20, 20)'),
             text = df['Территория'],
          #   marker_hover_data=df[indicators],
-            customdata = df['Кластер'],
+            customdata = df['Номер кластера'],
             hovertemplate = '%{text}<br>Номер кластера: %{customdata}<extra></extra>',
             name=""
     )
@@ -1073,11 +1074,11 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
     fig.layout.paper_bgcolor = globalbgcolor
     fig.layout.geo.landcolor = 'rgb(240, 240, 240)'
 
-    table00 = df.groupby(['Кластер'],as_index=False).mean().iloc[:, 0:len(indicators)+1].round(1)
+    table00 = df.groupby(['Номер кластера'],as_index=False).mean().iloc[:, 0:len(indicators)+1].round(1)
     if len(table00.index) > 0:
         cluster_members = list()
-        for c in range(n_clusters):
-            cluster_members.append(len(df[df['Кластер'] == str(c)][:]))
+        for c in range(1, n_clusters+1):
+            cluster_members.append(len(df[df['Номер кластера'] == str(c)][:]))
         cluster_members
         table00.insert(1, "Количество территорий", cluster_members)
         table0 = dbc.Table.from_dataframe(table00)
