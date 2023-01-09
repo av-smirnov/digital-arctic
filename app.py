@@ -356,17 +356,20 @@ indicators_dashboard = html.Div([
                         dbc.Col([
                             dbc.Label('Выберите год:'),
                             dcc.Slider(id='year_cluster_slider',
-                                    min=2010, max=2022, step=1, included=False,
-                                    value=2021,
-                                    marks={year: str(year)
-                                            for year in range(2010, 2023, 2)})
+                                    min=2010, max=2021, step=1, included=False,
+                                    value=2021, dots = True,
+                                       marks={year: {'label': str(year),
+                                                     'style': {'color': 'black', 'fontSize': 14}}
+                                              for year in range(2010, 2023, 2)}),
                         ], lg=6, md=12),
                         dbc.Col([
                             dbc.Label('Выберите число кластеров:'),
                             dcc.Slider(id='ncluster_cluster_slider',
                                     min=2, max=10, step=1, included=False,
                                     value=4,
-                                    marks={n: str(n) for n in range(2, 11)}),
+                                    marks={n:  {'label': str(n),
+                                                'style': {'color': 'black', 'fontSize': 14}}
+                                           for n in range(2, 11)}),
                         ], lg=4, md=12)
                     ]),
                     html.Br(),
@@ -390,7 +393,10 @@ indicators_dashboard = html.Div([
                         dcc.Graph(id='clustered_map_chart'),
                         html.H4('Средние значения показателей по кластерам'),
                         html.Div(id='cluster_table'),
-                    ])
+                    ]),
+                    html.Li(['Кластеризация по методу k-средних с использованием стандартного масштабирования данных. ',
+                            'Для оценки качества модели рассчитывается сумма квадратов расстояний от исходных точек ',
+                            'до ближайших к ним кластеров (функция inertia пакета scikit-learn). Чем ниже значение, тем лучше. ']),
                 ], label='Кластеризация'),
 
                 dbc.Tab([
@@ -1021,9 +1027,9 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
                         locations = df['ОКТМО'],
                         color=[str(x) for x in kmeans.labels_],
                         labels={'color': 'Кластер'},
-                        hover_data=indicators,
+                        hover_data=indicators, hover_name='Территория',
                         height=700,
-                        title=f'Кластеры территорий, {year}. Число кластеров: {n_clusters}. Качество модели (inertia): {kmeans.inertia_:,.2f}',
+                        title=f'Кластеры территорий, {year}. Число кластеров: {n_clusters}. Качество модели: {kmeans.inertia_:,.2f}',
                         #color_discrete_sequence=px.colors.qualitative.T10
                         color_discrete_map = colors
                     )
