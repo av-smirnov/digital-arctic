@@ -32,8 +32,10 @@ app = dash.Dash(__name__,
                 external_stylesheets=[dbc.themes.BOOTSTRAP])  # BOOTSTRAP COSMO PULSE ZEPHYR MATERIA LITERA
 server = app.server 
 
-image_filename = 'data/RSF_logo.png'
-encoded_image = base64.b64encode(open(image_filename, 'rb').read())
+image_filename_1 = 'data/RSF_logo.png'
+image_filename_2 = 'data/iespn_logo.png'
+encoded_image_1 = base64.b64encode(open(image_filename_1, 'rb').read())
+encoded_image_2 = base64.b64encode(open(image_filename_2, 'rb').read())
 
 tidy = pd.read_csv('data/tidy.csv', delimiter = ';', low_memory=False)
 indicators_info = pd.read_csv('data/indicators.csv', delimiter = ';')
@@ -155,12 +157,14 @@ main_layout = html.Div([
                                 ]),
                                 html.Li('Последнее обновление: 10.01.2023')
                             ]),
-                        ], xl=9, lg=8, md=7),
+                        ], xl=7, lg=7, md=6),
                         dbc.Col([
+                            html.Br(),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_1.decode()), width=250),
+                            html.B("_____", style={'color': globalbgcolor}),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), height=125),
                             html.Br(), html.Br(),
-                            html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()), width=250),
-                            html.Br(), html.Br(),
-                        ], style={"textAlign": "center"}, xl=3, lg=4, md=5)
+                        ], style={"textAlign": "center"}, xl=5, lg=5, md=6)
                     ])
                 ], label='О проекте'),
                 dbc.Tab([
@@ -173,12 +177,14 @@ main_layout = html.Div([
                                        href='http://vvfauzer.ru/index/arctic/0-18')
                                 ])
                             ])
-                        ], xl=9, lg=8, md=7),
+                        ], xl=7, lg=7, md=6),
                         dbc.Col([
+                            html.Br(),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_1.decode()), width=250),
+                            html.B("_____", style={'color': globalbgcolor}),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), height=125),
                             html.Br(), html.Br(),
-                            html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()), width=250),
-                            html.Br(), html.Br(),
-                        ], style={"textAlign": "center"}, xl=3, lg=4, md=5)
+                        ], style={"textAlign": "center"}, xl=5, lg=5, md=6)
                     ])
                 ], label='Полезные ссылки')
                 ]),
