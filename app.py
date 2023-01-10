@@ -425,7 +425,7 @@ indicators_dashboard = html.Div([
                         id="cytoscape_migration",
                         zoom=1.7,
                         elements=elements,
-                        style={"width": "100%", "height": "700px"},
+                        style={"width": "100%", "height": "650px"},
                         layout={"name": "cose", "fit": False},  # "preset" to use the pos coords
                         stylesheet=cyto_stylesheet,
                     ),
@@ -637,7 +637,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
                     showcountries=False, countrywidth = 0.5, coastlinewidth = 0.5,
                     )
     fig.update_layout(
-        height=700,  margin=dict(l=20, r=20, t=25, b=25),
+        height=650,  margin=dict(l=20, r=20, t=25, b=25),
     )
     fig.layout.geo.bgcolor = globalbgcolor
     fig.layout.paper_bgcolor = globalbgcolor
@@ -714,7 +714,7 @@ def plot_mma_graph(ind1, ind2, ind3, ind4, ch1, ch2, year):
                          y=ind2,
                          size='Размер метки',
                          color=ind4,
-                         height=700,
+                         height=650,
                          log_x=logx,
                          log_y=logy,
                          hover_name='Территория',
@@ -728,7 +728,7 @@ def plot_mma_graph(ind1, ind2, ind3, ind4, ch1, ch2, year):
                          y=ind2,
                          size='Размер метки',
                          color=ind4,
-                         height=700,
+                         height=650,
                          log_x=logx,
                          log_y=logy,
                          hover_name='Территория',
@@ -832,7 +832,7 @@ def settlement_map_plot(value):
                     projection_scale=6.2, showcoastlines=False,
                     showcountries=False, countrywidth=0.5, coastlinewidth=0.5,
                     )
-    fig.update_layout(height=750)
+    fig.update_layout(height=650)
     fig.layout.geo.bgcolor = globalbgcolor
     fig.layout.paper_bgcolor = globalbgcolor
     fig.layout.geo.landcolor = 'rgb(240, 240, 240)'
@@ -914,7 +914,7 @@ def migration_flows_map(vvalue):
     fig.update_layout(
         title_text='Перемещения людей в российской Арктике по данным Туту.ру в апреле 2019 г.<br>(красным цветом отмечены авиационные маршруты, синим - железнодорожные)',
         showlegend=False,
-        height=700,
+        height=650,
     )
     fig.layout.geo.bgcolor = globalbgcolor
     fig.layout.paper_bgcolor = globalbgcolor
@@ -968,7 +968,7 @@ def covil_graph_plot(indicator):
     except Exception:
         fig = px.line(df, x='Дата', y=indicator, color='Регион')
 
-    fig.update_layout(height=750)
+    fig.update_layout(height=650)
     fig.update_xaxes(tickformat='%d.%m<br>%Y')
     fig.layout.paper_bgcolor = globalbgcolor
     fig.update_layout(margin=dict(l=20, r=20, t=30, b=25))
@@ -1035,7 +1035,7 @@ def clustered_map(n_clicks, year, n_clusters, indicators):
                         color=[str(x) for x in labels],
                         labels={'color': 'Номер кластера'},
                         hover_data=indicators, hover_name='Территория',
-                        height=700,
+                        height=650,
                         title=f'Кластеры территорий, {year}. Число кластеров: {n_clusters}. Качество модели: {kmeans.inertia_:,.2f}',
                         #color_discrete_sequence=px.colors.qualitative.T10
                         color_discrete_map = colors
