@@ -32,7 +32,7 @@ app = dash.Dash(__name__,
                 external_stylesheets=[dbc.themes.BOOTSTRAP])  # BOOTSTRAP COSMO PULSE ZEPHYR MATERIA LITERA
 server = app.server 
 
-image_filename_1 = 'data/RSF_logo.png'
+image_filename_1 = 'data/rsf_logo.png'
 image_filename_2 = 'data/iespn_logo.png'
 encoded_image_1 = base64.b64encode(open(image_filename_1, 'rb').read())
 encoded_image_2 = base64.b64encode(open(image_filename_2, 'rb').read())
@@ -157,14 +157,14 @@ main_layout = html.Div([
                                 ]),
                                 html.Li('Последнее обновление: 10.01.2023')
                             ]),
-                        ], xl=7, lg=7, md=6),
+                        ], xl=8, lg=7, md=6),
                         dbc.Col([
                             html.Br(),
-                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_1.decode()), width=250),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_1.decode()), width=125),
                             html.B("_____", style={'color': globalbgcolor}),
-                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), height=125),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), width=125),
                             html.Br(), html.Br(),
-                        ], style={"textAlign": "center"}, xl=5, lg=5, md=6)
+                        ], style={"textAlign": "center"}, xl=4, lg=5, md=6)
                     ])
                 ], label='О проекте'),
                 dbc.Tab([
@@ -180,9 +180,9 @@ main_layout = html.Div([
                         ], xl=7, lg=7, md=6),
                         dbc.Col([
                             html.Br(),
-                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_1.decode()), width=250),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_1.decode()), width=125),
                             html.B("_____", style={'color': globalbgcolor}),
-                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), height=125),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), width=125),
                             html.Br(), html.Br(),
                         ], style={"textAlign": "center"}, xl=5, lg=5, md=6)
                     ])
