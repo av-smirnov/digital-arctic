@@ -177,14 +177,14 @@ main_layout = html.Div([
                                        href='http://vvfauzer.ru/index/arctic/0-18')
                                 ])
                             ])
-                        ], xl=7, lg=7, md=6),
+                        ], xl=8, lg=7, md=6),
                         dbc.Col([
                             html.Br(),
                             html.Img(src='data:image/png;base64,{}'.format(encoded_image_1.decode()), width=125),
                             html.B("_____", style={'color': globalbgcolor}),
                             html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), width=125),
                             html.Br(), html.Br(),
-                        ], style={"textAlign": "center"}, xl=5, lg=5, md=6)
+                        ], style={"textAlign": "center"}, xl=4, lg=5, md=6)
                     ])
                 ], label='Полезные ссылки')
                 ]),
