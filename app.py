@@ -30,7 +30,7 @@ app = dash.Dash(__name__,
 
               #  external_stylesheets=["assets/custom.css"])
                 external_stylesheets=[dbc.themes.BOOTSTRAP])  # BOOTSTRAP COSMO PULSE ZEPHYR MATERIA LITERA
-server = app.server 
+server = app.server
 
 image_filename_1 = 'data/rsf_logo.png'
 image_filename_2 = 'data/iespn_logo.png'
@@ -358,7 +358,6 @@ indicators_dashboard = html.Div([
                 dbc.Tab([
                     html.Br(),
                     dbc.Row([
-                        dbc.Col(lg=1),
                         dbc.Col([
                             dbc.Label('Выберите год:'),
                             dcc.Slider(id='year_cluster_slider',
@@ -367,7 +366,7 @@ indicators_dashboard = html.Div([
                                        marks={year: {'label': str(year),
                                                      'style': {'color': 'black', 'fontSize': 14}}
                                               for year in range(2010, 2023, 2)}),
-                        ], lg=6, md=12),
+                        ], lg=7, md=12),
                         dbc.Col([
                             dbc.Label('Выберите число кластеров:'),
                             dcc.Slider(id='ncluster_cluster_slider',
@@ -376,11 +375,10 @@ indicators_dashboard = html.Div([
                                     marks={n:  {'label': str(n),
                                                 'style': {'color': 'black', 'fontSize': 14}}
                                            for n in range(2, 11)}),
-                        ], lg=4, md=12)
+                        ], lg=5, md=12)
                     ]),
                     html.Br(),
                     dbc.Row([
-                        dbc.Col(lg=1),
                         dbc.Col([
                             dbc.Label('Выберите показатели:'),
                             dcc.Dropdown(id='cluster_indicator_dropdown',optionHeight=40,
@@ -389,7 +387,7 @@ indicators_dashboard = html.Div([
                                         options=[{'label': indicator, 'value': indicator}
                                                 for indicator in tidy.columns[9:65]]),
                             html.Br(),
-                        ], lg=6),
+                        ], lg=7),
                         dbc.Col([            
                             dbc.Label(''),html.Br(),
                             dbc.Button("Отправить", id='clustering_submit_button'),
@@ -404,6 +402,45 @@ indicators_dashboard = html.Div([
                             'Для оценки качества модели рассчитывается сумма квадратов расстояний от исходных точек ',
                             'до ближайших к ним кластеров (функция inertia пакета scikit-learn). Чем ниже значение, тем лучше. ']),
                 ], label='Кластеризация'),
+
+                dbc.Tab([
+                    html.Br(),
+                    dbc.Label('Выберите показатель:'),
+                    dcc.Dropdown(id='ind_forecast_dropdown',
+                                 value='Общий коэффициент смертности, промилле',
+                                 options=[{'label': indicator,
+                                           'value': indicator}
+                                          for indicator in tidy.columns[9:65]]),
+                    html.Br(),
+                    dbc.Label('Выберите территорию:'),
+                    dcc.Dropdown(id='area_forecast_dropdown',
+                                 value='Арктическая зона РФ',
+                                 options=[{'label': area,
+                                           'value': area}
+                                          for area in areas]),
+                    html.Br(),
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Label('Выберите годы учитываемых значений:'),
+                            dcc.RangeSlider(id='forecast_slider',
+                                            min=2010, max=2021, step=1,
+                                            value=[2010, 2019], dots=True,
+                                            marks={year: {'label': str(year),
+                                                          'style': {'color': 'black', 'fontSize': 14}}
+                                                   for year in range(2010, 2023, 2)}),
+                        ], lg=7, md=12),
+                        dbc.Col([
+                            dbc.Label('Выберите степень полинома:'),
+                            dcc.Slider(id='forecast_degree',
+                                       min=1, max=10, step=1, included=False,
+                                       value=1,
+                                       marks={n: {'label': str(n),
+                                                  'style': {'color': 'black', 'fontSize': 14}}
+                                              for n in range(1, 11)}),
+                        ], lg=5, md=12)
+                    ]),
+                    dcc.Graph(id='forecast_graph'),
+                ], label='Прогноз'),
 
                 dbc.Tab([
                     html.Br(),
@@ -1101,6 +1138,40 @@ def set_dropdown_values(pathname):
     if unquote(pathname[1:]) in areas:
         area = unquote(pathname[1:])
         return [area]
+
+@app.callback(Output('forecast_graph', 'figure'),
+              Input('ind_forecast_dropdown', 'value'),
+              Input('area_forecast_dropdown', 'value'),
+              Input('forecast_slider', 'value'),
+              Input('forecast_degree', 'value'))
+def plot_forecast(indicator, area, years, degree):
+    df = tidy[tidy['Территория'].eq(area) & tidy['Год'].isin([x for x in range(years[0], years[1]+1)])][['Год',indicator]].dropna()
+    df0 = tidy[tidy['Территория'].eq(area) & tidy['Год'].isin([x for x in range(2010, 2022)])][['Год', indicator]].dropna()
+    x = df['Год']
+    y = df[indicator]
+    x0 = df0['Год']
+    y0 = df0[indicator]
+    z = np.polyfit(x, y, degree)
+    f = np.poly1d(z)
+    x_new = np.linspace(2010, 2030, 21)
+    y_new = f(x_new)
+
+    trace1 = go.Scatter(
+        x=x0, y=y0, mode='markers', name='Все точки', marker=dict(size=10)
+    )
+    trace2 = go.Scatter(
+        x=x, y=y, mode='markers', name='Учитываются<br>в прогнозе', marker=dict(size=10)
+    )
+    trace3 = go.Scatter(
+        x=x_new, y=y_new, mode='lines', name='Прогноз'
+    )
+    data = [trace1, trace2, trace3]
+    fig = go.Figure(data=data)
+    fig.update_layout(height=650)
+    fig.layout.paper_bgcolor = globalbgcolor
+    fig.update_layout(margin=dict(l=20, r=20, t=35, b=25))
+
+    return fig
 
 
 @app.callback(Output('country_heading', 'children'),
