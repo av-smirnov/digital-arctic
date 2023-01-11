@@ -240,7 +240,7 @@ area_dashboard = html.Div([
 indicators_dashboard = html.Div([
     dbc.Col([
         html.Br(),
-        html.H1('!Цифровой двойник населения Арктики'),
+        html.H1('Цифровой двойник населения Арктики'),
 
     ], style={'textAlign': 'center'}),
     html.Br(),
