@@ -164,7 +164,7 @@ main_layout = html.Div([
                             html.B("_____", style={'color': globalbgcolor}),
                             html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), width=125),
                             html.Br(), html.Br(),
-                        ], style={"textAlign": "center"}, xl=4, lg=5, md=6)
+                        ], style={"textAlign": "right"}, xl=4, lg=5, md=6)
                     ])
                 ], label='О проекте'),
                 dbc.Tab([
@@ -184,11 +184,11 @@ main_layout = html.Div([
                             html.B("_____", style={'color': globalbgcolor}),
                             html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), width=125),
                             html.Br(), html.Br(),
-                        ], style={"textAlign": "center"}, xl=4, lg=5, md=6)
+                        ], style={"textAlign": "right"}, xl=4, lg=5, md=6)
                     ])
                 ], label='Полезные ссылки')
-                ]),
-            ])
+            ]),
+        ], lg=10)
     ])
 ], style={ 'backgroundColor': globalbgcolor
      })
@@ -196,10 +196,12 @@ main_layout = html.Div([
 
 area_dashboard = html.Div([
     dbc.Row([
-        dbc.Col(lg=1),
+        dbc.Col(lg=2),
         dbc.Col([
     html.Br(),
-        html.H1(id='country_heading'),
+    html.H1('Цифровой двойник населения Арктики'),
+    html.Br(),
+        html.H2(id='country_heading'),
         dcc.Markdown(id='area_info', style={'backgroundColor': globalbgcolor} ),
         dbc.Row([
             dbc.Col(dcc.Graph(id='country_page_graph'))
@@ -231,7 +233,7 @@ area_dashboard = html.Div([
         dcc.Graph(id='edu_graph'),
         html.Br(), html.H4('Основные демографические показатели'),
         html.Div(id='country_table')
-        ], lg=10)
+        ], lg=8)
     ]),
 ])
 
@@ -288,7 +290,7 @@ indicators_dashboard = html.Div([
                          ),
                     dcc.Graph(id='indicator_year_barchart',
                              figure=make_empty_fig())
-                ], label='Изучение показателей'),
+                ], label='Показатели'),
 
                 dbc.Tab([
                     html.Br(),
@@ -536,17 +538,17 @@ indicators_dashboard = html.Div([
                         dcc.Graph(id='higheredu_barchart')
 
                     ]),
-                    html.Li(['Приведенный контингент студентов рассчитывается по формуле: а + (b * 0,25) + ((c+d) х 0,1), ',
-                             'где: а - численность студентов очной формы обучения; b - численность студентов очно-заочной ',
-                             '(вечерней) формы обучения; с - численность студентов заочной формы обучения, ',
-                             'd - численность студентов экстерната). Оценки взяты из иформационно-аналитических материалов ',
-                             'по результатам проведения мониторинга деятельности образовательных организаций высшего образования.',
-                    ]),
                     html.Li(['Комплексный балл публикационной результативности (КБПР) характеризует публикационную ',
                              'результативность научного сотрудника и рассчитывается с учетом квартильности и категории ',
                              'научных публикаций методом фракционного счета (разделением вклада авторов в научный ',
                              'результат в случае, если публикация подготовлена несколькими авторами и из разных организаций). ',
                              'Источник данных: Научная электронная библиотека eLIBRARY.RU.',
+                    ]),
+                    html.Li(['Приведенный контингент студентов рассчитывается по формуле: а + (b * 0,25) + ((c+d) х 0,1), ',
+                             'где: а - численность студентов очной формы обучения; b - численность студентов очно-заочной ',
+                             '(вечерней) формы обучения; с - численность студентов заочной формы обучения, ',
+                             'd - численность студентов экстерната). Оценки взяты из иформационно-аналитических материалов ',
+                             'по результатам проведения мониторинга деятельности образовательных организаций высшего образования.',
                     ]),
                 ], label='Наука и образование'),
 
@@ -1311,8 +1313,8 @@ def plot_country_charts(pathname, areas, indicator):
         table = dbc.Table.from_dataframe(table)
     else:
         table = html.Div()
-    return 'Профиль ' + area, markdown, fig, table0, fig2, fig3, table
+    return 'Профиль: ' + area, markdown, fig, table0, fig2, fig3, table
 
 app.title = "Цифровой двойник населения Арктики. Дашборд"
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
