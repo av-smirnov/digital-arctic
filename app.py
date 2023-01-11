@@ -28,7 +28,7 @@ app = dash.Dash(__name__,
                 meta_tags=[{'name': 'viewport',
                             'content': 'width=device-width, initial-scale=1.0, maximum-scale=4, minimum-scale=0.5,'}],
 
-              #  external_stylesheets=["assets/custom.css"])
+              # 1  external_stylesheets=["assets/custom.css"])
                 external_stylesheets=[dbc.themes.BOOTSTRAP])  # BOOTSTRAP COSMO PULSE ZEPHYR MATERIA LITERA
 server = app.server
 
