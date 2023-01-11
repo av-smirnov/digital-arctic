@@ -199,7 +199,7 @@ area_dashboard = html.Div([
         dbc.Col(lg=2),
         dbc.Col([
     html.Br(),
-    html.H1('Цифровой двойник населения Арктики.', style={'textAlign': 'center'}),
+    html.H1('Цифровой двойник населения Арктики..', style={'textAlign': 'center'}),
     html.Br(),
         html.H2(id='country_heading'),
         dcc.Markdown(id='area_info', style={'backgroundColor': globalbgcolor} ),
