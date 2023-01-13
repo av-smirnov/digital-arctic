@@ -912,9 +912,9 @@ def settlement_map_plot(value, np, radius):
     radius_list = []
     for i, row in settl.iterrows():
         radius_list.append(round(GD((lat0, lon0), (row['lat'], row['lon'])).km, 2))
-    settl['Расстояние от ' + np + ', км'] = radius_list
+    settl['Расстояние, км'] = radius_list
 
-    settl_table = settl[settl['Расстояние от ' + np + ', км'] <= float(radius)].iloc[:, [0, 6, 18]].reset_index()
+    settl_table = settl[settl['Расстояние, км'] <= float(radius)].iloc[:, [0, 6, 18]].reset_index()
     settl_table["№"] = [x for x in range(1, settl_table.shape[0]+1)]
 
     if len(settl_table.index) > 0:
