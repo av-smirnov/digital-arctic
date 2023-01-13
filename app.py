@@ -924,7 +924,7 @@ def settlement_map_plot(value, np, radius):
     summa = settl_table['Население, человек'].sum()
 
     markdown = f"""
-            ** Население в радиусе {radius} км от {np} составляет {summa} чел.: **
+            ** Население в радиусе {radius} км от {np} составляет {summa} чел. (по данным ИНИД на 2020 г.): **
             """
 
     return fig, markdown, table0
