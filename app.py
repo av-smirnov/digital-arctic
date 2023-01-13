@@ -20,6 +20,7 @@ import dash_cytoscape as cyto
 import networkx as nx
 import dash_daq as daq
 import _datetime
+from geopy.distance import geodesic as GD
 
 globalbgcolor = '#F5FAFA'   # '#f7fbff'
 np.warnings.filterwarnings('ignore')
@@ -452,7 +453,31 @@ indicators_dashboard = html.Div([
                                  options=[{'label': indicator, 'value': indicator}
                                           for indicator in ['Карта расселения', 'Крупнейшая национальность',
                                                             'Вторая национальность', 'Анимация городского расселения']]),
-                dcc.Graph(id='settlement_map')
+                    dcc.Graph(id='settlement_map'),
+                    html.Br(), html.Br(),
+
+                    html.H3('Анализ центров расселения'),
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Label('Выберите населенный пункт'),
+                            dcc.Dropdown(id='settlement_dropdown2', optionHeight=40,
+                                                             value='г. Архангельск',
+                                                             options=[{'label': indicator, 'value': indicator}
+                                                                      for indicator in settlements['Населенный пункт']]),
+                        ]),
+                        dbc.Col([
+                            dbc.Label('Выберите радиус в километрах'),
+                            dcc.Dropdown(id='settlement_dropdown3', optionHeight=40,
+                                             value='50',
+                                             options=[{'label': indicator, 'value': indicator}
+                                                      for indicator in [5, 10, 20, 50, 100, 150]]),
+                        ]),
+                    ]),
+                    html.Br(),
+                    dcc.Markdown(id='settlement_details', style={'backgroundColor': globalbgcolor} ),
+                    html.Br(),
+                    html.Div(id='settlement_table'),
+
                 ], label='Расселение'),
 
                 dbc.Tab([
@@ -781,14 +806,18 @@ def plot_mma_graph(ind1, ind2, ind3, ind4, ch1, ch2, year):
 
 
 @app.callback(Output('settlement_map', 'figure'),
-              Input('settlement_dropdown', 'value'))
-def settlement_map_plot(value):
+              Output('settlement_details', 'children'),
+              Output('settlement_table', 'children'),
+              Input('settlement_dropdown', 'value'),
+              Input('settlement_dropdown2', 'value'),
+              Input('settlement_dropdown3', 'value'))
+def settlement_map_plot(value, np, radius):
     if value == 'Карта расселения':
         settl = settlements
         colors = {'город': '#e31a1c', 'пгт': '#1f78b4', 'поселок': '#ffff99', 'сельский нп': '#a6cee3',
                   'село': '#33a02c', 'деревня': '#b2df8a', 'станция': '#fdbf6f'}
         settl['color'] = [colors[str(x)] for x in settl['typ']]
-        settl['custom'] = 'Тип: ' + settl['typ'] + '<br>Население в 2020 г.: ' + settl['population'].astype(str) + '<br>(по данным ИНИД)'
+        settl['custom'] = 'Тип: ' + settl['typ'] + '<br>Население в 2020 г.: ' + settl['Население, человек'].astype(str) + '<br>(по данным ИНИД)'
         df = mo_colors
         fig = go.Figure()
         fig.add_trace(go.Choropleth(
@@ -804,7 +833,7 @@ def settlement_map_plot(value):
             lon=settl['lon'],
             lat=settl['lat'],
             mode='markers',
-            marker_size=settl['population'] ** (1 / 5) + 2,
+            marker_size=settl['Население, человек'] ** (1 / 5) + 2,
             marker_color=settl['color'],
             text=settl['settlement'],
             customdata=settl['custom'],
@@ -877,7 +906,28 @@ def settlement_map_plot(value):
     fig.layout.geo.landcolor = 'rgb(240, 240, 240)'
     fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
 
-    return fig
+    lat0 = settlements[settlements['Населенный пункт'].eq(np)].iloc[0]['lat']
+    lon0 = settlements[settlements['Населенный пункт'].eq(np)].iloc[0]['lon']
+
+    radius_list = []
+    for i, row in settl.iterrows():
+        radius_list.append(round(GD((lat0, lon0), (row['lat'], row['lon'])).km, 2))
+    settl['Радиус'] = radius_list
+
+    settl_table = settl[settl['Радиус'] <= float(radius)].iloc[:, [0, 6]].reset_index()
+    settl_table["№"] = [x for x in range(1, settl_table.shape[0]+1)]
+
+    if len(settl_table.index) > 0:
+        table0 = dbc.Table.from_dataframe(settl_table.iloc[:, [3,1,2]], striped=True, bordered=True, hover=True)
+    else:
+        table0 = html.Div()
+    summa = settl_table['Население, человек'].sum()
+
+    markdown = f"""
+            ** Население в радиусе {radius} км от {np} составляет {summa} чел.: **
+            """
+
+    return fig, markdown, table0
 
 
 @app.callback(Output('migration_flows', 'figure'),
