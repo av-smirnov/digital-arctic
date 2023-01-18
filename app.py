@@ -908,7 +908,7 @@ def settlement_map_plot(value, np, radius):
 
     lat0 = settlements[settlements['Населенный пункт'].eq(np)].iloc[0]['lat']
     lon0 = settlements[settlements['Населенный пункт'].eq(np)].iloc[0]['lon']
-
+    settl = settlements
     radius_list = []
     for i, row in settl.iterrows():
         radius_list.append(round(GD((lat0, lon0), (row['lat'], row['lon'])).km, 2))
