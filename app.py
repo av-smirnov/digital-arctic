@@ -242,7 +242,6 @@ indicators_dashboard = html.Div([
         html.H1('Цифровой двойник населения Арктики'),
 
     ], style={'textAlign': 'center'}),
-    html.Br(),
     dbc.Row([
         dbc.Col(lg=2),
         dbc.Col([
