@@ -23,6 +23,8 @@ import _datetime
 from geopy.distance import geodesic as GD
 
 globalbgcolor = '#F5FAFA'   # '#f7fbff'
+headcolor = '#e6f0f0'
+
 np.warnings.filterwarnings('ignore')
 
 app = dash.Dash(__name__, 
@@ -120,15 +122,23 @@ def multiline_indicator(indicator):
         final.append(' '.join(split[i:i+1]))
     return '<br>'.join(final)
 
+ddmenu = [dbc.DropdownMenuItem(area, href=area, style={'font-weight' : 'bold'} if area in [
+                    "Мурманская область", "Республика Карелия", "Архангельская область (без НАО)", "Ненецкий АО",
+                    "Республика Коми", "Ямало-Ненецкий АО", "Красноярский край", "Республика Саха (Якутия)",
+                    "Чукотский АО"] else {'font-weight' : 'normal'}) for area in areas]
+ddmenu[0].style = {'color' : 'blue', 'font-weight' : 'bold'}
+mdiv = dbc.DropdownMenuItem(divider=True)
+ddmenu.insert(1, mdiv), ddmenu.insert(20, mdiv), ddmenu.insert(28, mdiv),
+ddmenu.insert(39, mdiv), ddmenu.insert(43, mdiv), ddmenu.insert(49,mdiv),
+ddmenu.insert(64, mdiv), ddmenu.insert(70, mdiv), ddmenu.insert(85, mdiv)
 
 main_layout = html.Div([
     html.Div([
-    dbc.NavbarSimple([
-        dbc.DropdownMenu([
-                dbc.DropdownMenuItem(area, href=area) for area in areas
-            ], label='Выберите территорию'),
-        ], brand='Главная страница',brand_href='/'),
-    dcc.Location(id='location'),
+        dbc.NavbarSimple([
+            dbc.DropdownMenu(ddmenu, label='Выберите территорию', align_end=True, color="primary", style={}),
+        ], brand='Главная страница', brand_href='/', brand_style={"color": "#0c6cfd", 'font-weight': 'bold'},
+            color=headcolor),
+        dcc.Location(id='location'),
     html.Div(id='main_content'),
     html.Br(),
     dbc.Row([
@@ -220,8 +230,13 @@ area_dashboard = html.Div([
                 dcc.Dropdown(id='country_page_contry_dropdown',
                              placeholder='Выберите одну или несколько территорий для сравнения',
                              multi=True,
-                             options=[{'label': c, 'value': c}
-                                       for c in areas]),
+                             options=[{'label': html.Span(area, style={'font-weight': 'bold'} if area in [
+                                 "Арктическая зона РФ", "Мурманская область", "Республика Карелия", "Архангельская область (без НАО)",
+                                 "Ненецкий АО", "Республика Коми", "Ямало-Ненецкий АО", "Красноярский край", "Республика Саха (Якутия)",
+                                 "Чукотский АО"] else {'font-weight': 'normal'}),
+                                       'value': area,
+                                       }
+                                      for area in areas]),
             ], lg=6, md=11)
         ]),
         html.Br(),
@@ -275,8 +290,8 @@ indicators_dashboard = html.Div([
                                          value='Спектральная',
                                          options=[{'label': indicator,
                                          'value': indicator}
-                                         for indicator in ['Спектральная', 'От красного к синему',
-                                                           'От красного к зеленому','Для ч/б печати' , 'При нарушении цветовосприятия']]),
+                                         for indicator in ['Спектральная', 'От красного к синему', 'От красного к зеленому',
+                                                           'Универсальная', 'Для ч/б печати' , 'При нарушении цветовосприятия']]),
                         ], lg=3),
                         dbc.Col([
                             daq.BooleanSwitch(id='indicator_map_inverter', on=False, label="Обратная шкала")
@@ -415,8 +430,12 @@ indicators_dashboard = html.Div([
                     dbc.Label('Выберите территорию:'),
                     dcc.Dropdown(id='area_forecast_dropdown',
                                  value='Арктическая зона РФ',
-                                 options=[{'label': area,
-                                           'value': area}
+                                 options=[{'label': html.Span(area, style= {'font-weight' : 'bold'} if area in ["Арктическая зона РФ",
+                    "Мурманская область", "Республика Карелия", "Архангельская область (без НАО)", "Ненецкий АО",
+                    "Республика Коми", "Ямало-Ненецкий АО", "Красноярский край", "Республика Саха (Якутия)",
+                    "Чукотский АО"] else {'font-weight' : 'normal'}),
+                                           'value': area,
+                                           }
                                           for area in areas]),
                     html.Br(),
                     dbc.Row([
@@ -640,7 +659,8 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
         "Спектральная": "spectral",
         "От красного к синему": "RdBu",
         "От красного к зеленому": "RdYlGn",
-        "Для ч/б печати": "Viridis",
+        "Универсальная": "Viridis",
+        "Для ч/б печати": "Greys",
         "При нарушении цветовосприятия": "Cividis",
     }
 
