@@ -1468,7 +1468,7 @@ def world_graph_plot(indicator):
             ),
         )
 
-    fig.update_layout(height=650)
+    fig.update_layout(height=650, yaxis_title=world[indicator].name)
     if min_y_val < 0:
         fig.update_yaxes(range=[min_y_val + 0.05 * min_y_val, max_y_val + 0.25 * max_y_val])
     else:
