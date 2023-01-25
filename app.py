@@ -1474,6 +1474,7 @@ def world_graph_plot(indicator):
     else:
         fig.update_yaxes(range=[0, max_y_val + 0.25 * max_y_val])
     fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+    fig.layout.paper_bgcolor = globalbgcolor
 
     fig2 = px.scatter_geo(world_set, lon='Долгота', lat='Широта', size=world_set["Население, 2021 г."] ** (1 / 1.7) + 2,
                          color='Страна', hover_name='Название',
