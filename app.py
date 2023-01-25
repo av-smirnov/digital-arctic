@@ -21,6 +21,7 @@ import networkx as nx
 import dash_daq as daq
 import _datetime
 from geopy.distance import geodesic as GD
+from PIL import Image
 
 globalbgcolor = '#F5FAFA'   # '#f7fbff'
 headcolor = '#e6f0f0'
@@ -60,6 +61,8 @@ higheredu = pd.read_csv("data/higheredu.csv", sep=';', low_memory=False)
 mo_info = pd.read_csv("data/mo_info.csv", sep=';', low_memory=False)
 settlements= pd.read_csv("data/settlements.csv", sep=';')
 urban_t = pd.read_csv('data/urban_tidy.csv', delimiter = ';', low_memory=False)
+world_table = pd.read_csv('data/world.csv', delimiter = ';')
+world_set = pd.read_csv('data/world_set.csv', delimiter = ';')
 
 areas = molist['Территория'].drop_duplicates().tolist()
 with open('data/rusmo10_10.geojson', encoding='utf-8') as json_file:
@@ -135,7 +138,8 @@ ddmenu.insert(64, mdiv), ddmenu.insert(70, mdiv), ddmenu.insert(85, mdiv)
 main_layout = html.Div([
     html.Div([
         dbc.NavbarSimple([
-            dbc.DropdownMenu(ddmenu, label='Выберите территорию', align_end=True, color="primary", style={}),
+            dbc.NavItem(dbc.NavLink("Мировая Арктика", href="Мировая Арктика"), style={"color": "#0c6cfd", 'font-weight': 'bold'}),
+            dbc.DropdownMenu(ddmenu, label='Профили территорий', align_end=True, color="primary", style={}),
         ], brand='Главная страница', brand_href='/', brand_style={"color": "#0c6cfd", 'font-weight': 'bold'},
             color=headcolor),
         dcc.Location(id='location'),
@@ -203,6 +207,37 @@ main_layout = html.Div([
     ])
 ], style={ 'backgroundColor': globalbgcolor
      })
+])
+
+world_dashboard = html.Div([
+    dbc.Row([
+        dbc.Col(lg=2),
+        dbc.Col([
+            html.H1('Цифровой двойник населения Арктики', style={'textAlign': 'center'}),
+            html.Br(),
+            html.H2('Показатели мировой Арктики по странам', style={'textAlign': 'center'}),
+            dbc.Label('Выберите показатель:'),
+            dcc.Dropdown(id='world_indicator_dropdown',
+                         placeholder='Выберите показатель',
+                         value='Численность населения на начало года, тыс. человек, 2019 г.',
+                         options=[{'label': indicator, 'value': indicator}
+                                  for indicator in world_table.columns[1:23]]),
+            dcc.Graph(id='world_graph'),
+
+            html.Li(['Рассматриваются только арктические части стран: Россия (Арктическая зона РФ), США (Аляска), '
+                     'Канада (Юкон, Северо-Западные территории, ',
+                     'Нунавут, Норвегия (Нурланн, Троммс, Финнмарк, Шпицберген и Ян-Майен), ',
+                     'Швеция (Норрботтен и Вестерботтен) ',
+                     'Финляндия (Лапландися, Северная Остроботния и Кайнуу).']),
+            html.Li(['Составлено по данным официальных статистических ведомств восьми арктических стран: gks.ru, fedstat.ru, ',
+                     'census.gov, stat.fi, scb.se, ssb.no, statice.is, statcan.gc.ca, stat.gl, hagstova.fo, statbank.dk.']),
+
+            html.Br(),
+            html.H2('Крупнейшие поселения (свыше 10 тыс. жителей)', style={'textAlign': 'center'}),
+            dcc.Graph(id='world_map'),
+
+        ],lg=8),
+    ])
 ])
 
 area_dashboard = html.Div([
@@ -622,6 +657,7 @@ app.validation_layout = html.Div([
     main_layout,
     indicators_dashboard,
     area_dashboard,
+    world_dashboard
 ])
 
 app.layout = main_layout
@@ -644,6 +680,8 @@ def displayTapNodeData(data):
 def display_content(pathname):
     if unquote(pathname[1:]) in areas:
         return area_dashboard
+    elif unquote(pathname[1:]) == "Мировая Арктика":
+        return world_dashboard
     else:
         return indicators_dashboard
 
@@ -1381,6 +1419,74 @@ def plot_country_charts(pathname, areas, indicator):
     else:
         table = html.Div()
     return 'Профиль: ' + area, markdown, fig, table0, fig2, fig3, table
+
+@app.callback(Output('world_graph', 'figure'),
+              Output('world_map', 'figure'),
+              Input('world_indicator_dropdown', 'value'))
+def world_graph_plot(indicator):
+    world = world_table
+    world = world.sort_values(by=indicator, ascending=False).dropna(subset=[indicator])
+    world['Флаг'] = ['data/flags/' + x + '.png' for x in world['Страна']]
+    world.loc[world['Страна'] == 'Фарерские острова', 'Страна'] = 'Фарерские<br>острова'
+    fig = go.Figure(go.Bar(
+        x=world['Страна'],
+        y=world[indicator],
+        text=world.values,
+        textposition="auto",
+        texttemplate="%{value}",
+        textfont=dict(size=14, color="black")
+    ))
+    fig.update_traces(
+        marker_color='rgb(158,202,225)',
+        marker_line_color='rgb(8,48,107)',
+        marker_line_width=1.5,
+        opacity=0.8,
+    )
+    max_y_val = world[indicator].max()
+    min_y_val = world[indicator].min()
+
+    for country, flag_url, ppl_vac in zip(world['Страна'], world['Флаг'],
+                                          world[indicator]):
+        if not flag_url or not isinstance(flag_url, str):
+            continue
+        fig.add_layout_image(
+            dict(
+                source=(Image.open(flag_url)),
+                x=country,
+                y=ppl_vac + 0.07 * max_y_val,
+                sizex=1,
+                sizey=max_y_val/11,
+                xanchor="center", yanchor="bottom",
+                sizing="contain",
+                xref='x',
+                yref="y",
+            ),
+        )
+
+    fig.update_layout(height=650)
+    if min_y_val < 0:
+        fig.update_yaxes(range=[min_y_val + 0.05 * min_y_val, max_y_val + 0.25 * max_y_val])
+    else:
+        fig.update_yaxes(range=[0, max_y_val + 0.25 * max_y_val])
+    fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+
+    fig2 = px.scatter_geo(world_set, lon='Долгота', lat='Широта', size=world_set["Население, 2021 г."] ** (1 / 1.7) + 2,
+                         color='Страна', hover_name='Название',
+                         custom_data=['Население, 2021 г.'], hover_data=['Население, 2021 г.']
+                         )
+    fig2.update_geos(projection_type="orthographic")
+    fig2.update_layout(height=700)
+    fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+    fig2.update_geos(projection_type="orthographic", projection_rotation_roll=0,
+                    projection_rotation_lat=90,
+                    projection_rotation_lon=0,
+                    center_lat=90,
+                    center_lon=0,
+                    projection_scale=2.2, showcoastlines=False,
+                    showcountries=True, countrywidth=0.5, coastlinewidth=0.5, resolution = 50,
+                    )
+
+    return fig, fig2
 
 app.title = "Цифровой двойник населения Арктики. Дашборд"
 if __name__ == '__main__':
