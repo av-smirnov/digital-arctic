@@ -1424,10 +1424,15 @@ def plot_country_charts(pathname, areas, indicator):
               Output('world_map', 'figure'),
               Input('world_indicator_dropdown', 'value'))
 def world_graph_plot(indicator):
+    country_names = {'Россия': 'Russia', 'США': 'United States', 'Канада': 'Canada', 'Дания': 'Denmark',
+                     'Исландия': 'Iceland', 'Норвегия': 'Norway', 'Финляндия': 'Finland', 'Дания': 'Denmark',
+                     'Швеция': 'Sweden', 'Фарерские острова': 'Faroe Islands', 'Гренландия': 'Greenland'}
+
     world = world_table
     world = world.sort_values(by=indicator, ascending=False).dropna(subset=[indicator])
-    world['Флаг'] = ['data/flags/' + x + '.png' for x in world['Страна']]
-    world.loc[world['Страна'] == 'Фарерские острова', 'Страна'] = 'Фарерские<br>острова'
+    world['Флаг'] = ['data/flags/' + country_names[x]+ '.png' for x in world['Страна']]
+    world.loc[world['Страна'] == 'Фарерские острова', 'Страна'] = 'Фарерские<br>острова<br>(Дания)'
+    world.loc[world['Страна'] == 'Гренландия', 'Страна'] = 'Гренландия<br>(Дания)'
     fig = go.Figure(go.Bar(
         x=world['Страна'],
         y=world[indicator],
