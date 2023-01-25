@@ -1482,13 +1482,15 @@ def world_graph_plot(indicator):
     fig2.update_geos(projection_type="orthographic")
     fig2.update_layout(height=700)
     fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+    fig2.layout.geo.bgcolor = globalbgcolor
+    fig2.layout.paper_bgcolor = globalbgcolor
     fig2.update_geos(projection_type="orthographic", projection_rotation_roll=0,
                     projection_rotation_lat=90,
                     projection_rotation_lon=0,
                     center_lat=90,
                     center_lon=0,
                     projection_scale=2.2, showcoastlines=False,
-                    showcountries=True, countrywidth=0.5, coastlinewidth=0.5, resolution = 50,
+                    showcountries=True, countrywidth=0.5, coastlinewidth=0.5, resolution = 110,
                     )
 
     return fig, fig2
