@@ -119,11 +119,11 @@ def make_empty_fig():
     return fig
 
 
-def multiline_indicator(indicator):
+def multiline_indicator(indicator, numb):
     final = []
     split = indicator.split()
-    for i in range(0, len(split), 1):
-        final.append(' '.join(split[i:i+1]))
+    for i in range(0, len(split), numb):
+        final.append(' '.join(split[i:i+numb]))
     return '<br>'.join(final)
 
 ddmenu = [dbc.DropdownMenuItem(area, href=area, style={'font-weight' : 'bold'} if area in [
@@ -235,6 +235,16 @@ world_dashboard = html.Div([
 
             html.Br(),
             html.H2('Крупнейшие поселения (свыше 10 тыс. жителей)', style={'textAlign': 'center'}),
+            dbc.Label('Выберите показатель:'),
+            dcc.Dropdown(id='world_map_dropdown',
+                         placeholder='Выберите показатель',
+                         value='Страна',
+                         options=[{'label': indicator,
+                                   'value': indicator}
+                                  for indicator in
+                                  ['Страна',
+                                   'Изменение численности населения, 2000-2021 гг., %',
+                                   'Изменение численности населения, 2010-2021 гг., %']]),
             dcc.Graph(id='world_map'),
 
         ],lg=8),
@@ -259,7 +269,7 @@ area_dashboard = html.Div([
                              placeholder='Выберите показатель',
                              value='Численность населения (по переписям), человек',
                              options=[{'label': indicator, 'value': indicator}
-                                     for indicator in tidy.columns[9:65]]),
+                                      for indicator in tidy.columns[9:65]]),
             ], lg=6, md=11),
             dbc.Col([
                 dbc.Label('Выберите территории:'),
@@ -723,7 +733,7 @@ def display_generic_map_chart(indicator, year, mapcolor, invert):
         z=df[indicator], hoverinfo='text',
         marker=dict(line_width=0.5, line_color='rgb(140,140,140)'),
         colorscale=imapcolor, showscale=True,
-        colorbar_title = multiline_indicator(indicator) + ",<br>" + str(year) + " г.",
+        colorbar_title = multiline_indicator(indicator, 1) + ",<br>" + str(year) + " г.",
         text= df['Территория'],
         customdata=df[indicator],
         hovertemplate = '%{text}<br>Значение: %{customdata}<extra></extra>',
@@ -1423,8 +1433,10 @@ def plot_country_charts(pathname, areas, indicator):
 
 @app.callback(Output('world_graph', 'figure'),
               Output('world_map', 'figure'),
-              Input('world_indicator_dropdown', 'value'))
-def world_graph_plot(indicator):
+              Input('world_indicator_dropdown', 'value'),
+              Input('world_map_dropdown', 'value')
+              )
+def world_graph_plot(indicator, color_ind):
     country_names = {'Россия': 'Russia', 'США': 'United States', 'Канада': 'Canada', 'Дания': 'Denmark',
                      'Исландия': 'Iceland', 'Норвегия': 'Norway', 'Финляндия': 'Finland', 'Дания': 'Denmark',
                      'Швеция': 'Sweden', 'Фарерские острова': 'Faroe Islands', 'Гренландия': 'Greenland'}
@@ -1478,13 +1490,21 @@ def world_graph_plot(indicator):
     fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
     fig.layout.paper_bgcolor = globalbgcolor
 
-    fig2 = px.scatter_geo(world_set, lon='Долгота', lat='Широта', size=world_set["Население, 2021 г."] ** (1 / 1.7) + 2,
-                         color='Страна', hover_name='Название',
-                         custom_data=['Население, 2021 г.'], hover_data=['Население, 2021 г.']
+    world_set['size'] = world_set["Население, 2021 г."] ** (1 / 1.7) + 2
+
+
+    fig2 = px.scatter_geo(world_set, lon='Долгота', lat='Широта', size='size',
+                         color=color_ind, hover_name='Название',
+                         color_continuous_scale='spectral', color_continuous_midpoint = 0, range_color=[-50,50],
+                         custom_data=['Население, 2021 г.'], hover_data={'Страна':True, 'Тип населенного пункта':False,
+                                                                         'Население, 2021 г.':True, 'size': False,
+                                                                         'Широта':False, 'Долгота':False},
+
                          )
-    fig2.update_geos(projection_type="orthographic")
+    fig2.update_layout(coloraxis_colorbar_title_text=multiline_indicator(indicator, 3))
     fig2.update_layout(height=700)
     fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+    fig2.update_traces(marker=dict(line=dict(width=1, color='black')))
     fig2.layout.geo.bgcolor = globalbgcolor
     fig2.layout.paper_bgcolor = globalbgcolor
     fig2.update_geos(projection_type="orthographic", projection_rotation_roll=0,
