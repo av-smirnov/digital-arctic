@@ -1,29 +1,29 @@
-import re
-from urllib.parse import unquote
 import dash
 from dash import html
 from dash import dcc
-import dash_bootstrap_components as dbc
 from dash.dependencies import Output, Input, State
 from dash.exceptions import PreventUpdate
 from dash import dash_table
+from urllib.parse import unquote
+import dash_cytoscape as cyto
+import dash_bootstrap_components as dbc
+import dash_daq as daq
+import re
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 import numpy as np
+import json
+import base64
+import networkx as nx
+import _datetime
+from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
-import json
-import base64
-import dash_cytoscape as cyto
-import networkx as nx
-import dash_daq as daq
-import _datetime
 from geopy.distance import geodesic as GD
-from PIL import Image
 
-globalbgcolor = '#F5FAFA'   # '#f7fbff'
+globalbgcolor = '#F5FAFA'
 headcolor = '#e6f0f0'
 
 np.warnings.filterwarnings('ignore')
@@ -32,8 +32,9 @@ app = dash.Dash(__name__,
                 meta_tags=[{'name': 'viewport',
                             'content': 'width=device-width, initial-scale=1.0, maximum-scale=4, minimum-scale=0.5,'}],
 
-              # 1   external_stylesheets=["assets/custom.css"])
+              # external_stylesheets=["assets/custom.css"])
                 external_stylesheets=[dbc.themes.BOOTSTRAP])  # BOOTSTRAP COSMO PULSE ZEPHYR MATERIA LITERA
+
 server = app.server
 
 image_filename_1 = 'data/rsf_logo.png'
@@ -1433,66 +1434,129 @@ def world_graph_plot(indicator):
     world['Флаг'] = ['data/flags/' + country_names[x]+ '.png' for x in world['Страна']]
     world.loc[world['Страна'] == 'Фарерские острова', 'Страна'] = 'Фарерские<br>острова<br>(Дания)'
     world.loc[world['Страна'] == 'Гренландия', 'Страна'] = 'Гренландия<br>(Дания)'
-    fig = go.Figure(go.Bar(
-        x=world['Страна'],
-        y=world[indicator],
-        text=world.values,
-        textposition="auto",
-        texttemplate="%{value}",
-        textfont=dict(size=14, color="black")
-    ))
-    fig.update_traces(
-        marker_color='rgb(158,202,225)',
-        marker_line_color='rgb(8,48,107)',
-        marker_line_width=1.5,
-        opacity=0.8,
-    )
-    max_y_val = world[indicator].max()
-    min_y_val = world[indicator].min()
 
-    for country, flag_url, ppl_vac in zip(world['Страна'], world['Флаг'],
-                                          world[indicator]):
-        if not flag_url or not isinstance(flag_url, str):
-            continue
-        fig.add_layout_image(
-            dict(
-                source=(Image.open(flag_url)),
-                x=country,
-                y=ppl_vac + 0.07 * max_y_val,
-                sizex=1,
-                sizey=max_y_val/11,
-                xanchor="center", yanchor="bottom",
-                sizing="contain",
-                xref='x',
-                yref="y",
-            ),
+    try:
+        fig = go.Figure(go.Bar(
+            x=world['Страна'],
+            y=world[indicator],
+            text=world.values,
+            textposition="auto",
+            texttemplate="%{value}",
+            textfont=dict(size=14, color="black")
+        ))
+        fig.update_traces(
+            marker_color='rgb(158,202,225)',
+            marker_line_color='rgb(8,48,107)',
+            marker_line_width=1.5,
+            opacity=0.8,
         )
+        max_y_val = world[indicator].max()
+        min_y_val = world[indicator].min()
 
-    fig.update_layout(height=650, yaxis_title=world[indicator].name)
-    if min_y_val < 0:
-        fig.update_yaxes(range=[min_y_val + 0.05 * min_y_val, max_y_val + 0.25 * max_y_val])
-    else:
-        fig.update_yaxes(range=[0, max_y_val + 0.25 * max_y_val])
-    fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
-    fig.layout.paper_bgcolor = globalbgcolor
+        for country, flag_url, ppl_vac in zip(world['Страна'], world['Флаг'],
+                                              world[indicator]):
+            if not flag_url or not isinstance(flag_url, str):
+                continue
+            fig.add_layout_image(
+                dict(
+                    source=(Image.open(flag_url)),
+                    x=country,
+                    y=ppl_vac + 0.07 * max_y_val,
+                    sizex=1,
+                    sizey=max_y_val/11,
+                    xanchor="center", yanchor="bottom",
+                    sizing="contain",
+                    xref='x',
+                    yref="y",
+                ),
+            )
 
-    fig2 = px.scatter_geo(world_set, lon='Долгота', lat='Широта', size=world_set["Население, 2021 г."] ** (1 / 1.7) + 2,
-                         color='Страна', hover_name='Название',
-                         custom_data=['Население, 2021 г.'], hover_data=['Население, 2021 г.']
-                         )
-    fig2.update_geos(projection_type="orthographic")
-    fig2.update_layout(height=700)
-    fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
-    fig2.layout.geo.bgcolor = globalbgcolor
-    fig2.layout.paper_bgcolor = globalbgcolor
-    fig2.update_geos(projection_type="orthographic", projection_rotation_roll=0,
-                    projection_rotation_lat=90,
-                    projection_rotation_lon=0,
-                    center_lat=90,
-                    center_lon=0,
-                    projection_scale=2.2, showcoastlines=False,
-                    showcountries=True, countrywidth=0.5, coastlinewidth=0.5, resolution = 110,
-                    )
+        fig.update_layout(height=650, yaxis_title=world[indicator].name)
+        if min_y_val < 0:
+            fig.update_yaxes(range=[min_y_val + 0.05 * min_y_val, max_y_val + 0.25 * max_y_val])
+        else:
+            fig.update_yaxes(range=[0, max_y_val + 0.25 * max_y_val])
+        fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+        fig.layout.paper_bgcolor = globalbgcolor
+
+        fig2 = px.scatter_geo(world_set, lon='Долгота', lat='Широта', size=world_set["Население, 2021 г."] ** (1 / 1.7) + 2,
+                             color='Страна', hover_name='Название',
+                             custom_data=['Население, 2021 г.'], hover_data=['Население, 2021 г.']
+                             )
+        fig2.update_geos(projection_type="orthographic")
+        fig2.update_layout(height=700)
+        fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+        fig2.layout.geo.bgcolor = globalbgcolor
+        fig2.layout.paper_bgcolor = globalbgcolor
+        fig2.update_geos(projection_type="orthographic", projection_rotation_roll=0,
+                        projection_rotation_lat=90,
+                        projection_rotation_lon=0,
+                        center_lat=90,
+                        center_lon=0,
+                        projection_scale=2.2, showcoastlines=False,
+                        showcountries=True, countrywidth=0.5, coastlinewidth=0.5, resolution = 110,
+                        )
+    except Exception:
+        fig = go.Figure(go.Bar(
+            x=world['Страна'],
+            y=world[indicator],
+            text=world.values,
+            textposition="auto",
+            texttemplate="%{value}",
+            textfont=dict(size=14, color="black")
+        ))
+        fig.update_traces(
+            marker_color='rgb(158,202,225)',
+            marker_line_color='rgb(8,48,107)',
+            marker_line_width=1.5,
+            opacity=0.8,
+        )
+        max_y_val = world[indicator].max()
+        min_y_val = world[indicator].min()
+
+        for country, flag_url, ppl_vac in zip(world['Страна'], world['Флаг'],
+                                              world[indicator]):
+            if not flag_url or not isinstance(flag_url, str):
+                continue
+            fig.add_layout_image(
+                dict(
+                    source=(Image.open(flag_url)),
+                    x=country,
+                    y=ppl_vac + 0.07 * max_y_val,
+                    sizex=1,
+                    sizey=max_y_val/11,
+                    xanchor="center", yanchor="bottom",
+                    sizing="contain",
+                    xref='x',
+                    yref="y",
+                ),
+            )
+
+        fig.update_layout(height=650, yaxis_title=world[indicator].name)
+        if min_y_val < 0:
+            fig.update_yaxes(range=[min_y_val + 0.05 * min_y_val, max_y_val + 0.25 * max_y_val])
+        else:
+            fig.update_yaxes(range=[0, max_y_val + 0.25 * max_y_val])
+        fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+        fig.layout.paper_bgcolor = globalbgcolor
+
+        fig2 = px.scatter_geo(world_set, lon='Долгота', lat='Широта', size=world_set["Население, 2021 г."] ** (1 / 1.7) + 2,
+                             color='Страна', hover_name='Название',
+                             custom_data=['Население, 2021 г.'], hover_data=['Население, 2021 г.']
+                             )
+        fig2.update_geos(projection_type="orthographic")
+        fig2.update_layout(height=700)
+        fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+        fig2.layout.geo.bgcolor = globalbgcolor
+        fig2.layout.paper_bgcolor = globalbgcolor
+        fig2.update_geos(projection_type="orthographic", projection_rotation_roll=0,
+                        projection_rotation_lat=90,
+                        projection_rotation_lon=0,
+                        center_lat=90,
+                        center_lon=0,
+                        projection_scale=2.2, showcoastlines=False,
+                        showcountries=True, countrywidth=0.5, coastlinewidth=0.5, resolution = 110,
+                        )
 
     return fig, fig2
 
