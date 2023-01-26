@@ -1492,9 +1492,17 @@ def world_graph_plot(indicator):
                     projection_rotation_lon=0,
                     center_lat=90,
                     center_lon=0,
-                    projection_scale=2.2, showcoastlines=False,
+                    projection_scale=2.0, showcoastlines=False,
                     showcountries=True, countrywidth=0.5, coastlinewidth=0.5, resolution = 110,
+
+                     lonaxis_showgrid=True, lonaxis_gridcolor="#bbb",
+                     lataxis_showgrid = True, lataxis_gridcolor = "#bbb",
+                     oceancolor = '#cae0ee', showocean = True, landcolor = "#eaeaea",
+                     showrivers = True, rivercolor = '#cae0ee', riverwidth = 2,
+                     showlakes=True, lakecolor='#cae0ee',
                     )
+
+
 
     return fig, fig2
 
