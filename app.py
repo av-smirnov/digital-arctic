@@ -219,10 +219,10 @@ world_dashboard = html.Div([
             html.H2('Показатели мировой Арктики по странам', style={'textAlign': 'center'}),
             dbc.Label('Выберите показатель:'),
             dcc.Dropdown(id='world_indicator_dropdown',
-                         placeholder='Выберите показатель',
-                         value='Численность населения на начало года, тыс. человек, 2019 г.',
-                         options=[{'label': indicator, 'value': indicator}
-                                  for indicator in world_table.columns[1:23]]),
+                                 placeholder='Выберите показатель',
+                                 value='Численность населения на начало года, тыс. человек, 2019 г.',
+                                 options=[{'label': indicator, 'value': indicator}
+                                          for indicator in world_table.columns[1:23]]),
             dcc.Graph(id='world_graph'),
 
             html.Li(['Рассматриваются только арктические части стран: Россия (Арктическая зона РФ), США (Аляска), '
@@ -235,16 +235,23 @@ world_dashboard = html.Div([
 
             html.Br(),
             html.H2('Крупнейшие поселения (свыше 10 тыс. жителей)', style={'textAlign': 'center'}),
-            dbc.Label('Выберите показатель:'),
-            dcc.Dropdown(id='world_map_dropdown',
-                         placeholder='Выберите показатель',
-                         value='Страна',
-                         options=[{'label': indicator,
-                                   'value': indicator}
-                                  for indicator in
-                                  ['Страна',
-                                   'Изменение численности населения, 2000-2021 гг., %',
-                                   'Изменение численности населения, 2010-2021 гг., %']]),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Label('Выберите показатель:'),
+                    dcc.Dropdown(id='world_map_dropdown',
+                                 placeholder='Выберите показатель',
+                                 value='Страна',
+                                 options=[{'label': indicator,
+                                           'value': indicator}
+                                          for indicator in
+                                          ['Страна',
+                                           'Изменение численности населения, 2000-2021 гг., %',
+                                           'Изменение численности населения, 2010-2021 гг., %']]),
+                ], lg=9, md = 8),
+                dbc.Col([
+                    daq.BooleanSwitch(id='world_resolution_switch', on=False, label="Высокое разрешение")
+                ], lg=3, md = 4),
+            ]),
             dcc.Graph(id='world_map'),
 
         ],lg=8),
@@ -1434,9 +1441,9 @@ def plot_country_charts(pathname, areas, indicator):
 @app.callback(Output('world_graph', 'figure'),
               Output('world_map', 'figure'),
               Input('world_indicator_dropdown', 'value'),
-              Input('world_map_dropdown', 'value')
-              )
-def world_graph_plot(indicator, color_ind):
+              Input('world_map_dropdown', 'value'),
+              Input('world_resolution_switch', 'on'))
+def world_graph_plot(indicator, color_ind, hires):
     country_names = {'Россия': 'Russia', 'США': 'United States', 'Канада': 'Canada', 'Дания': 'Denmark',
                      'Исландия': 'Iceland', 'Норвегия': 'Norway', 'Финляндия': 'Finland', 'Дания': 'Denmark',
                      'Швеция': 'Sweden', 'Фарерские острова': 'Faroe Islands', 'Гренландия': 'Greenland'}
@@ -1513,7 +1520,7 @@ def world_graph_plot(indicator, color_ind):
                     center_lat=90,
                     center_lon=0,
                     projection_scale=2.0, showcoastlines=False,
-                    showcountries=True, countrywidth=0.5, coastlinewidth=0.5, resolution = 110,
+                    showcountries=True, countrywidth=0.5, coastlinewidth=0.5, resolution = 50 if hires==True else 110,
 
                      lonaxis_showgrid=True, lonaxis_gridcolor="#bbb",
                      lataxis_showgrid = True, lataxis_gridcolor = "#bbb",
