@@ -1508,7 +1508,7 @@ def world_graph_plot(indicator, color_ind, hires):
                                                                          'Широта':False, 'Долгота':False},
 
                          )
-    fig2.update_layout(coloraxis_colorbar_title_text=multiline_indicator(indicator, 3))
+    fig2.update_layout(coloraxis_colorbar_title_text=multiline_indicator(color_ind, 2))
     fig2.update_layout(height=700)
     fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
     fig2.update_traces(marker=dict(line=dict(width=1, color='black')))
