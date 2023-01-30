@@ -555,7 +555,7 @@ indicators_dashboard = html.Div([
                     html.H4('Миграционные потоки в Арктике по данным проекта "Виртуальное население России"'),
                     dbc.Row([
                         dbc.Col([
-                            dbc.Label('Выберите схему компановки сети: '),
+                            dbc.Label('Выберите схему компоновки сети: '),
                             dcc.Dropdown(
                                     id='dropdown-update-layout',
                                     value='Силовая',
