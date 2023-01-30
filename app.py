@@ -69,6 +69,7 @@ areas = molist['Территория'].drop_duplicates().tolist()
 with open('data/rusmo10_10.geojson', encoding='utf-8') as json_file:
     rusmo = json.load(json_file)
 
+cyto.load_extra_layouts()
 def cyto_init(numb):
     arcticmigrtable = pd.read_csv('data/arcticmigration.csv')
     arcticmigrtable = arcticmigrtable[arcticmigrtable['migranty'] >= numb]
@@ -562,7 +563,8 @@ indicators_dashboard = html.Div([
                                     clearable=False,
                                     options=[
                                         {'label': name.capitalize(), 'value': name}
-                                        for name in ['Решетка', 'Случайная', 'Круговая', 'Концентрическая', 'Силовая']
+                                        for name in ['Решетка', 'Случайная', 'Круговая', 'Концентрическая', 'Силовая',
+                                                     'Силовая 2', 'Силовая 3', 'Силовая 4', 'Слои', 'Распространение']
                                     ]
                                 ),
                         ]),
@@ -720,7 +722,8 @@ def displayTapNodeData(data):
               Input('dropdown-update-layout', 'value'))
 def update_layout(layout):
     layout_ru = {'Решетка': 'grid', 'Случайная': 'random', 'Круговая': 'circle', 'Концентрическая': 'concentric',
-                    'Силовая': 'cose'}
+                    'Силовая': 'cose', 'Силовая 2' : 'cose-bilkent', 'Силовая 3' : 'cola', 'Силовая 4' : 'euler',
+                 'Слои' : 'klay', 'Распространение' : 'spread'}
     return {
         'name': layout_ru[layout],
         'animate': True
