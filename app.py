@@ -69,31 +69,32 @@ areas = molist['Территория'].drop_duplicates().tolist()
 with open('data/rusmo10_10.geojson', encoding='utf-8') as json_file:
     rusmo = json.load(json_file)
 
+def cyto_init(numb):
+    arcticmigrtable = pd.read_csv('data/arcticmigration.csv')
+    arcticmigrtable = arcticmigrtable[arcticmigrtable['migranty'] >= numb]
+    migrnames = oktmo.migrname.tolist()
+    G = nx.DiGraph()
+    for i, row in arcticmigrtable.iterrows():
+        G.add_edge(row[4], row[5], weight=row[3])
+    degree_values = [v for k, v in G.degree(weight='weight')]
+    in_degree_values = [v for k, v in G.in_degree(weight='weight')]
+    out_degree_values = [v for k, v in G.out_degree(weight='weight')]
+    cy = nx.cytoscape_data(G)
+    counter1 = 0
+    for n in cy["elements"]["nodes"]:
+        for k, v in n.items():
+            v["label"] = v.pop("value")
+            v["size"] = degree_values[counter1]
+            v["in_size"] = in_degree_values[counter1]
+            v["out_size"] = out_degree_values[counter1]
+            v["sq_size"] = degree_values[counter1] ** (1/2)
+            counter1 = counter1 + 1
+            if v["label"] in migrnames:
+                v["color"] = "#1f78b4"
+            else:
+                v["color"] = "#e31a1c"
+    return cy["elements"]["nodes"] + cy["elements"]["edges"]
 
-arcticmigrtable = pd.read_csv('data/arcticmigration.csv')
-arcticmigrtable = arcticmigrtable[arcticmigrtable['migranty'] > 49]
-migrnames = oktmo.migrname.tolist()
-G = nx.DiGraph()
-for i, row in arcticmigrtable.iterrows():
-    G.add_edge(row[4], row[5], weight=row[3])
-degree_values = [v for k, v in G.degree(weight='weight')]
-in_degree_values = [v for k, v in G.in_degree(weight='weight')]
-out_degree_values = [v for k, v in G.out_degree(weight='weight')]
-cy = nx.cytoscape_data(G)
-counter1 = 0
-for n in cy["elements"]["nodes"]:
-    for k, v in n.items():
-        v["label"] = v.pop("value")
-        v["size"] = degree_values[counter1]
-        v["in_size"] = in_degree_values[counter1]
-        v["out_size"] = out_degree_values[counter1]
-        v["sq_size"] = degree_values[counter1] ** (1/2)
-        counter1 = counter1 + 1
-        if v["label"] in migrnames:
-            v["color"] = "#1f78b4"
-        else:
-            v["color"] = "#e31a1c"
-elements = cy["elements"]["nodes"] + cy["elements"]["edges"]
 cyto_stylesheet=[
     {"selector": "node", "style": {
                                                "width": "mapData(sq_size, 0, 165, 3, 12)",
@@ -552,12 +553,36 @@ indicators_dashboard = html.Div([
                 dbc.Tab([
                     html.Br(),
                     html.H4('Миграционные потоки в Арктике по данным проекта "Виртуальное население России"'),
-                    html.B('Наведите курсор на узел сети или поток. '),
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Label('Выберите схему компановки сети: '),
+                            dcc.Dropdown(
+                                    id='dropdown-update-layout',
+                                    value='Силовая',
+                                    clearable=False,
+                                    options=[
+                                        {'label': name.capitalize(), 'value': name}
+                                        for name in ['Решетка', 'Случайная', 'Круговая', 'Концентрическая', 'Силовая']
+                                    ]
+                                ),
+                        ]),
+                        dbc.Col([
+                                dbc.Label('Выберите минимальную величину потока:'),
+                                dcc.Slider(id='cyto_slider',
+                                           min=10, max=500, step=1,
+                                           included=False, value=50,
+                                           tooltip={"placement": "top", "always_visible": True},
+                                           marks={i: {'label': str(i),
+                                                         'style': {'color': 'black', 'fontSize': 14}}
+                                                  for i in range(0, 501, 50)}),
+                        ]),
+                    ]),
                     html.Br(),
+
                     cyto.Cytoscape(
                         id="cytoscape_migration",
                         zoom=1.7,
-                        elements=elements,
+                        elements=cyto_init(50),
                         style={"width": "100%", "height": "650px"},
                         layout={"name": "cose", "fit": False},  # "preset" to use the pos coords
                         stylesheet=cyto_stylesheet,
@@ -571,8 +596,7 @@ indicators_dashboard = html.Div([
                     html.Li(['Составлено по данным профилей социальной сети "ВКонтакте". ',
                             'Учитывается только последняя смена места жительства ',
                             'Синим цветом отмечены арктические города, красным - остальные. ',
-                            'На сайте представлена упрощенная модель, содержащая только потоки от 50 человек. ',
-                            'Наведите на узел или поток для получения подробной информации.']),
+                            'Выберите узел или поток для получения подробной информации.']),
                     html.Li(['Полный набор данных доступен на сайте проекта "' ,
                         html.A((html.B('Виртуальное население России')),
                                 href='https://story.tutu.ru/dataset-tutu-ru-i-dannye-modeli-open-data-science/'), '".'
@@ -681,17 +705,31 @@ app.validation_layout = html.Div([
 app.layout = main_layout
 
 @app.callback(Output('cytoscape-mouseoverNodeData-output', 'children'),
-              Input('cytoscape_migration', 'mouseoverNodeData'))
+              Input('cytoscape_migration', 'tapNodeData'))
 def displayTapNodeData(data):
     if data:
         return "Выбран узел: " + data['label'] + ". Прибывших: " + str(data['in_size']) + ". Выбывших: " + str(data['out_size']) + "."
 
 @app.callback(Output('cytoscape-mouseoverEdgeData-output', 'children'),
-              Input('cytoscape_migration', 'mouseoverEdgeData'))
+              Input('cytoscape_migration', 'tapEdgeData'))
 def displayTapNodeData(data):
     if data:
         return "Выбран поток: " + data['source'] + " - " + data['target'] + ". Число перемещений: " + str(data['weight']) + "."
 
+@app.callback(Output('cytoscape_migration', 'layout'),
+              Input('dropdown-update-layout', 'value'))
+def update_layout(layout):
+    layout_ru = {'Решетка': 'grid', 'Случайная': 'random', 'Круговая': 'circle', 'Концентрическая': 'concentric',
+                    'Силовая': 'cose'}
+    return {
+        'name': layout_ru[layout],
+        'animate': True
+    }
+
+@app.callback(Output('cytoscape_migration', 'elements'),
+              Input('cyto_slider', 'value'))
+def update_layout(node_numb):
+    return cyto_init(node_numb)
 
 @app.callback(Output('main_content', 'children'),
               Input('location', 'pathname'))
@@ -1439,11 +1477,8 @@ def plot_country_charts(pathname, areas, indicator):
     return 'Профиль: ' + area, markdown, fig, table0, fig2, fig3, table
 
 @app.callback(Output('world_graph', 'figure'),
-              Output('world_map', 'figure'),
-              Input('world_indicator_dropdown', 'value'),
-              Input('world_map_dropdown', 'value'),
-              Input('world_resolution_switch', 'on'))
-def world_graph_plot(indicator, color_ind, hires):
+              Input('world_indicator_dropdown', 'value'))
+def world_graph_plot(indicator):
     country_names = {'Россия': 'Russia', 'США': 'United States', 'Канада': 'Canada', 'Дания': 'Denmark',
                      'Исландия': 'Iceland', 'Норвегия': 'Norway', 'Финляндия': 'Finland', 'Дания': 'Denmark',
                      'Швеция': 'Sweden', 'Фарерские острова': 'Faroe Islands', 'Гренландия': 'Greenland'}
@@ -1488,7 +1523,6 @@ def world_graph_plot(indicator, color_ind, hires):
                 yref="y",
             ),
         )
-
     fig.update_layout(height=650, yaxis_title=world[indicator].name)
     if min_y_val < 0:
         fig.update_yaxes(range=[min_y_val + 0.05 * min_y_val, max_y_val + 0.25 * max_y_val])
@@ -1496,25 +1530,30 @@ def world_graph_plot(indicator, color_ind, hires):
         fig.update_yaxes(range=[0, max_y_val + 0.25 * max_y_val])
     fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
     fig.layout.paper_bgcolor = globalbgcolor
+    return fig
+
+@app.callback(Output('world_map', 'figure'),
+              Input('world_map_dropdown', 'value'),
+              Input('world_resolution_switch', 'on'))
+def world_map_plot(color_ind, hires):
 
     world_set['size'] = world_set["Население, 2021 г."] ** (1 / 1.7) + 2
 
 
-    fig2 = px.scatter_geo(world_set, lon='Долгота', lat='Широта', size='size',
+    fig = px.scatter_geo(world_set, lon='Долгота', lat='Широта', size='size',
                          color=color_ind, hover_name='Название',
                          color_continuous_scale='spectral', color_continuous_midpoint = 0, range_color=[-50,50],
                          custom_data=['Население, 2021 г.'], hover_data={'Страна':True, 'Тип населенного пункта':False,
                                                                          'Население, 2021 г.':True, 'size': False,
                                                                          'Широта':False, 'Долгота':False},
-
                          )
-    fig2.update_layout(coloraxis_colorbar_title_text=multiline_indicator(color_ind, 1))
-    fig2.update_layout(height=700)
-    fig2.update_layout(margin=dict(l=20, r=20, t=25, b=25))
-    fig2.update_traces(marker=dict(line=dict(width=1, color='black')))
-    fig2.layout.geo.bgcolor = globalbgcolor
-    fig2.layout.paper_bgcolor = globalbgcolor
-    fig2.update_geos(projection_type="orthographic", projection_rotation_roll=0,
+    fig.update_layout(coloraxis_colorbar_title_text=multiline_indicator(color_ind, 1))
+    fig.update_layout(height=700)
+    fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+    fig.update_traces(marker=dict(line=dict(width=1, color='black')))
+    fig.layout.geo.bgcolor = globalbgcolor
+    fig.layout.paper_bgcolor = globalbgcolor
+    fig.update_geos(projection_type="orthographic", projection_rotation_roll=0,
                     projection_rotation_lat=90,
                     projection_rotation_lon=0,
                     center_lat=90,
@@ -1528,10 +1567,7 @@ def world_graph_plot(indicator, color_ind, hires):
                      showrivers = True, rivercolor = '#cae0ee', riverwidth = 2,
                      showlakes=True, lakecolor='#cae0ee',
                     )
-
-
-
-    return fig, fig2
+    return fig
 
 app.title = "Цифровой двойник населения Арктики. Дашборд"
 if __name__ == '__main__':
