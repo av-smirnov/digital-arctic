@@ -108,7 +108,7 @@ cyto_stylesheet=[
     }},
     {"selector": 'edge', "style": {"width": "mapData(weight, 0, 2000, 0.1, 1.0)",
                                                'target-arrow-color': '#909090', 'curve-style': 'bezier',
-                                               'target-arrow-shape': 'triangle', 'arrow-scale': 0.2,
+                                               'target-arrow-shape': 'triangle', 'arrow-scale': 0.15,
                                                'line-color': '#909090',
     }}
 ]
