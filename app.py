@@ -3,12 +3,10 @@ from dash import html
 from dash import dcc
 from dash.dependencies import Output, Input, State
 from dash.exceptions import PreventUpdate
-from dash import dash_table
 from urllib.parse import unquote
 import dash_cytoscape as cyto
 import dash_bootstrap_components as dbc
 import dash_daq as daq
-import re
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
