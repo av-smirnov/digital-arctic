@@ -139,7 +139,7 @@ ddmenu.insert(64, mdiv), ddmenu.insert(70, mdiv), ddmenu.insert(85, mdiv)
 main_layout = html.Div([
     html.Div([
         dbc.NavbarSimple([
-            dbc.NavItem(dbc.NavLink("Мировая Арктика!", href="Мировая Арктика"), style={"color": "#0c6cfd", 'font-weight': 'bold'}),
+            dbc.NavItem(dbc.NavLink("Мировая Арктика", href="Мировая Арктика"), style={"color": "#0c6cfd", 'font-weight': 'bold'}),
             dbc.DropdownMenu(ddmenu, label='Профили территорий', align_end=True, color="primary", style={}),
         ], brand='Главная страница', brand_href='/', brand_style={"color": "#0c6cfd", 'font-weight': 'bold'},
             color=headcolor),
