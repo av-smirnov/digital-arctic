@@ -141,7 +141,7 @@ main_layout = html.Div([
         dbc.NavbarSimple([
             dbc.NavItem(dbc.NavLink("Мировая Арктика", href="Мировая Арктика"), style={"color": "#0c6cfd", 'font-weight': 'bold'}),
             dbc.DropdownMenu(ddmenu, label='Профили территорий', align_end=True, color="primary", style={}),
-        ], brand='Не главная страница', brand_href='/', brand_style={"color": "#0c6cfd", 'font-weight': 'bold'},
+        ], brand='Главная страница', brand_href='/', brand_style={"color": "#0c6cfd", 'font-weight': 'bold'},
             color=headcolor),
         dcc.Location(id='location'),
     html.Div(id='main_content'),
