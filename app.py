@@ -156,16 +156,29 @@ main_layout = html.Div([
                             html.Ul([
                                 html.Br(),
                                 html.Li([
-                                    'Информация об авторстве скрыта на время рецензирования статьи',
+                                    'Дашборд разработан в рамках гранта ', html.B('Российского научного фонда'), ' № 21-78-00081. Сайт проекта: ',
+                                    html.A('https://arcdem.ru',
+                                            href='https://arcdem.ru')
                                         ]),
-                                html.Li('Последнее обновление: 20.02.2023')
+                                html.Li([
+                                    'Руководитель проекта и автор сайта – к.э.н., с.н.с. лаборатории демографии и социального управления '
+                                    'ИСЭ и ЭПС ФИЦ Коми НЦ УрО РАН ', html.B('Андрей Владимирович Смирнов'), ' (',
+                                    html.A('av.smirnov.ru@gmail.com',
+                                           href='mailto:av.smirnov.ru@gmail.com'), ')'
+                                ]),
+                                html.Li([
+                                    'Репозиторий на GitHub: ',
+                                    html.A('https://github.com/av-smirnov/digital-arctic',
+                                           href='https://github.com/av-smirnov/digital-arctic')
+                                ]),
+                                html.Li('Последнее обновление: 10.01.2023')
                             ]),
                         ], xl=8, lg=7, md=6),
                         dbc.Col([
                             html.Br(),
                             html.Img(src='data:image/png;base64,{}'.format(encoded_image_1.decode()), width=125),
                             html.B("_____", style={'color': globalbgcolor}),
-              #              html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), width=125),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), width=125),
                             html.Br(), html.Br(),
                         ], style={"textAlign": "right"}, xl=4, lg=5, md=6)
                     ])
@@ -175,13 +188,17 @@ main_layout = html.Div([
                         dbc.Col([
                             html.Ul([
                                 html.Br(),
+                                html.Li(['Научные статьи о населении Арктики: ',
+                                    html.A('http://vvfauzer.ru/index/arctic/0-18',
+                                       href='http://vvfauzer.ru/index/arctic/0-18')
+                                ])
                             ])
                         ], xl=8, lg=7, md=6),
                         dbc.Col([
                             html.Br(),
                             html.Img(src='data:image/png;base64,{}'.format(encoded_image_1.decode()), width=125),
                             html.B("_____", style={'color': globalbgcolor}),
-             #               html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), width=125),
+                            html.Img(src='data:image/png;base64,{}'.format(encoded_image_2.decode()), width=125),
                             html.Br(), html.Br(),
                         ], style={"textAlign": "right"}, xl=4, lg=5, md=6)
                     ])
@@ -584,11 +601,11 @@ indicators_dashboard = html.Div([
                         html.A((html.B('Виртуальное население России')),
                                 href='https://story.tutu.ru/dataset-tutu-ru-i-dannye-modeli-open-data-science/'), '".'
                             ]),
-          #          html.Li([
-          #              'Пример изучения перемещений населения методами сетевого анализа представлен в статье "',
-          #              html.B(html.A('Цифровые следы населения как источник данных о миграционных потоках в российской Арктике',
-          #                      href='https://www.avsci.ru/p/1_25.pdf')), '".'
-          #          ])
+                    html.Li([
+                        'Пример изучения перемещений населения методами сетевого анализа представлен в статье "',
+                        html.B(html.A('Цифровые следы населения как источник данных о миграционных потоках в российской Арктике',
+                                href='https://www.avsci.ru/p/1_25.pdf')), '".'
+                    ])
                 ], label='Миграция'),
 
                 dbc.Tab([
@@ -606,11 +623,11 @@ indicators_dashboard = html.Div([
                         html.A(('Полный набор данных на сайте ', html.B('Туту.ру'), ' и его описание'),
                                 href='https://story.tutu.ru/dataset-tutu-ru-i-dannye-modeli-open-data-science/')
                             ]),
-        #            html.Li([
-        #                'Пример изучения перемещений населения методами сетевого анализа представлен в статье "',
-        #                html.B(html.A('Цифровые следы населения как источник данных о миграционных потоках в российской Арктике',
-        #                        href='https://www.avsci.ru/p/1_25.pdf')), '"'
-        #            ])
+                    html.Li([
+                        'Пример изучения перемещений населения методами сетевого анализа представлен в статье "',
+                        html.B(html.A('Цифровые следы населения как источник данных о миграционных потоках в российской Арктике',
+                                href='https://www.avsci.ru/p/1_25.pdf')), '"'
+                    ])
                 ], label='Транспорт'),
 
                 dbc.Tab([
@@ -665,11 +682,11 @@ indicators_dashboard = html.Div([
                     dcc.Graph(id='covid_graph'),
                     dcc.Markdown(id='covid_details', style={'backgroundColor': globalbgcolor} ),
                     html.Br(),
-            #        html.Li([
-            #            'Пример изучения пандемии с помощью временных рядов показателей представлен в статье "',
-            #            html.B(html.A('Влияние пандемии на демографические процессы в Российской Арктике',
-            #                    href='https://www.avsci.ru/p/1_21.pdf')), '"'
-            #        ])
+                    html.Li([
+                        'Пример изучения пандемии с помощью временных рядов показателей представлен в статье "',
+                        html.B(html.A('Влияние пандемии на демографические процессы в Российской Арктике',
+                                href='https://www.avsci.ru/p/1_21.pdf')), '"'
+                    ])
                 ], label='Пандемия'),
             ]),
         ], lg=8, md=12)
