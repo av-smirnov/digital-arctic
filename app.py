@@ -914,6 +914,7 @@ def plot_mma_graph(ind1, ind2, ind3, ind4, ch1, ch2, year):
                          )
     fig.layout.paper_bgcolor = globalbgcolor
     fig.update_layout(margin=dict(l=20, r=20, t=25, b=25))
+    fig.update_traces(marker=dict(line=dict(width=1,color="black")))
     return fig
 
 
