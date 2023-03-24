@@ -1,2 +1,4 @@
 # Digital Arctic
-В данном репозитории размещен исходных код дашборда [Цифровой двойник населения Арктики](https://digital-arctic.ru/), реализованного на языке Python с помощью пакетов экосистемы Dash. Файл **app.py** содержит исходный код дашборда. В папке **data** размещены файлы данных проекта.
+В репозитории размещены исходный код и данные дашборда «[Цифровой двойник населения Арктики](https://digital-arctic.ru/)», реализованного на языке Python с помощью пакетов экосистемы Dash. Файл **app.py** содержит исходный код дашборда. В папке **data** размещены файлы данных проекта.
+
+The repository contains the source code and data of the “[Digital Twin of the Arctic Population](https://digital-arctic.ru/)” dashboard, implemented in Python using Dash ecosystem packages. The **app.py** file contains the source code for the dashboard. The **data** folder contains project data files.
