@@ -254,7 +254,7 @@ world_dashboard = html.Div([
                     daq.BooleanSwitch(id='world_resolution_switch', on=False, label="Высокое разрешение")
                 ], lg=3, md = 4),
             ]),
-            dcc.Graph(id='world_map'),
+            dcc.Graph(id='world_map', config=plotlyConfig),
 
         ],lg=8),
     ])
