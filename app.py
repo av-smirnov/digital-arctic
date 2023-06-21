@@ -21,6 +21,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 from geopy.distance import geodesic as GD
 
+plotlyConfig = {'topojsonURL':'http://digital-arctic.ru/assets/'}
+
 globalbgcolor = '#F5FAFA'
 headcolor = '#e6f0f0'
 
@@ -350,7 +352,7 @@ indicators_dashboard = html.Div([
                             daq.BooleanSwitch(id='indicator_map_inverter', on=False, label="Обратная шкала")
                         ], lg=2),
                     ]),
-                    dcc.Graph(id='indicator_map_chart'),
+                    dcc.Graph(id='indicator_map_chart', config=plotlyConfig),
                     dcc.Markdown(id='indicator_map_details_md',
                                 style={'backgroundColor': globalbgcolor}
                          ),
