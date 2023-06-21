@@ -21,7 +21,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 from geopy.distance import geodesic as GD
 
-plotlyConfig = {'topojsonURL':'http://127.0.0.1:8000/assets/'}
+plotlyConfig = {'topojsonURL':'http://127.0.0.1:8050/assets/'}
 
 globalbgcolor = '#F5FAFA'
 headcolor = '#e6f0f0'
